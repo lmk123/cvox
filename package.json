@@ -1,12 +1,21 @@
 {
   "name": "cvox",
   "version": "1.0.0",
-  "description": "",
+  "description": "Claude Voice Notifications - voice alerts for Claude Code hooks",
+  "bin": {
+    "cvox": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc"
   },
-  "dependencies": {},
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
   "devDependencies": {
+    "@types/node": "^20.14.0",
     "typescript": "^5.5.3"
   }
 }
