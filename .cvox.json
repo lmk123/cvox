@@ -1,5 +1,5 @@
 {
-  "project": "Claude Voice",
+  "project": "克劳德语音",
   "hooks": {
     "notification": {
       "message": "{project} 需要权限"
