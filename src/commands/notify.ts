@@ -54,6 +54,36 @@ function speak(message: string, config: CvoxConfig): void {
   }
 }
 
+function escapeAppleScript(str: string): string {
+  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function desktopNotify(title: string, message: string, config: CvoxConfig): void {
+  if (!config.desktop.enabled) return;
+
+  switch (process.platform) {
+    case "darwin": {
+      const script = `display notification "${escapeAppleScript(message)}" with title "${escapeAppleScript(title)}"`;
+      execFile("osascript", ["-e", script], () => {});
+      break;
+    }
+    case "win32": {
+      const ps =
+        `Add-Type -AssemblyName System.Windows.Forms; ` +
+        `$n = New-Object System.Windows.Forms.NotifyIcon; ` +
+        `$n.Icon = [System.Drawing.SystemIcons]::Information; ` +
+        `$n.Visible = $true; ` +
+        `$n.ShowBalloonTip(5000, '${title.replace(/'/g, "''")}', '${message.replace(/'/g, "''")}', 'Info')`;
+      execFile("powershell", ["-Command", ps], () => {});
+      break;
+    }
+    default: {
+      execFile("notify-send", [title, message], () => {});
+      break;
+    }
+  }
+}
+
 function detectEngine(): "say" | "espeak" | "sapi" {
   switch (process.platform) {
     case "darwin":
@@ -94,4 +124,5 @@ export async function notifyCommand(): Promise<void> {
   );
 
   speak(message, config);
+  desktopNotify("cvox", message, config);
 }

@@ -22,6 +22,12 @@ const LOCALE_OPTIONS = [
   { key: "4", code: "ko", label: "한국어" },
 ];
 
+const NOTIFY_METHOD_OPTIONS = [
+  { key: "1", label: "Voice only", tts: true, desktop: false },
+  { key: "2", label: "Desktop notification only", tts: false, desktop: true },
+  { key: "3", label: "Both voice and desktop", tts: true, desktop: true },
+];
+
 export async function initCommand(options: { global?: boolean }): Promise<void> {
   const cwd = process.cwd();
   const defaultName = path.basename(cwd);
@@ -46,6 +52,15 @@ export async function initCommand(options: { global?: boolean }): Promise<void> 
     const selected = LOCALE_OPTIONS.find((o) => o.key === localeAnswer) ?? LOCALE_OPTIONS[0];
     const messages = LOCALE_MESSAGES[selected.code];
 
+    // 问题 3：通知方式
+    console.log("Notification method:");
+    for (const opt of NOTIFY_METHOD_OPTIONS) {
+      const defaultMark = opt.key === "1" ? " (default)" : "";
+      console.log(`  ${opt.key}. ${opt.label}${defaultMark}`);
+    }
+    const methodAnswer = await prompt(rl, "Select method [1]: ");
+    const selectedMethod = NOTIFY_METHOD_OPTIONS.find((o) => o.key === methodAnswer) ?? NOTIFY_METHOD_OPTIONS[0];
+
     rl.close();
 
     // 注入 hooks 到 Claude Code settings
@@ -63,13 +78,15 @@ export async function initCommand(options: { global?: boolean }): Promise<void> 
         notification: { message: messages.notification },
         stop: { message: messages.stop },
       },
+      tts: { enabled: selectedMethod.tts },
+      desktop: { enabled: selectedMethod.desktop },
     });
 
     const target = isGlobal ? "global" : "project";
     console.log(`cvox: Configured ${target} hooks → ${settingsPath}`);
     console.log("  - Notification (permission_prompt)");
     console.log("  - Stop");
-    console.log(`cvox: Generated .cvox.json (${selected.label})`);
+    console.log(`cvox: Generated .cvox.json (${selected.label}, ${selectedMethod.label})`);
   } finally {
     rl.close();
   }
