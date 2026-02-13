@@ -15,14 +15,13 @@ Voice notifications for [Claude Code](https://docs.anthropic.com/en/docs/claude-
 ## Quick Start
 
 ```bash
-# One-liner: install hooks into your project
-npx cvox init
-
-# Or install globally
+# Install globally
 npm install -g cvox
+
+# Install hooks into your project
 cvox init
 
-# Install hooks globally (applies to all projects)
+# Or install hooks globally (applies to all projects)
 cvox init --global
 ```
 
