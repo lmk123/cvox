@@ -61,17 +61,17 @@ function speak(message: string, config: CvoxConfig): void {
   }
 }
 
-function escapeAppleScript(str: string): string {
-  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
 function desktopNotify(title: string, message: string, config: CvoxConfig): void {
   if (!config.desktop.enabled) return;
 
   switch (process.platform) {
     case "darwin": {
-      const script = `display notification "${escapeAppleScript(message)}" with title "${escapeAppleScript(title)}"`;
-      execFile("osascript", ["-e", script], handleExecError);
+      execFile("osascript", [
+        "-e", "on run argv",
+        "-e", "display notification (item 2 of argv) with title (item 1 of argv)",
+        "-e", "end run",
+        "--", title, message,
+      ], handleExecError);
       break;
     }
     case "win32": {

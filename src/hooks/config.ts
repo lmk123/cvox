@@ -34,7 +34,7 @@ export function generateHooksConfig(): CvoxHooksConfig {
       Stop: [
         {
           matcher: "", // empty matcher matches all Stop events
-          hooks: [{ ...notifyHook }],
+          hooks: [notifyHook],
         },
       ],
     },

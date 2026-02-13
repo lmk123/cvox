@@ -1,5 +1,6 @@
 import * as readline from "readline";
 import * as path from "path";
+import * as os from "os";
 import { generateHooksConfig } from "../hooks/config.js";
 import {
   getSettingsPath,
@@ -70,7 +71,8 @@ export async function initCommand(options: { global?: boolean }): Promise<void> 
     writeSettings(settingsPath, merged);
 
     // 生成 .cvox.json
-    writeProjectConfig(cwd, {
+    const configDir = isGlobal ? os.homedir() : cwd;
+    writeProjectConfig(configDir, {
       project: projectName,
       hooks: {
         notification: { message: messages.notification },
