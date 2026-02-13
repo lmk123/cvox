@@ -26,10 +26,10 @@ export interface CvoxConfig {
 }
 
 export const LOCALE_MESSAGES: Record<string, { notification: string; stop: string }> = {
-  en: { notification: "Claude Code Alert: {project}, needs permission", stop: "Claude Code Alert: {project}, task completed" },
-  zh: { notification: "Claude Code 提醒：{project}，需要权限", stop: "Claude Code 提醒：{project}，任务完成" },
-  ja: { notification: "Claude Code 通知：{project}、権限が必要です", stop: "Claude Code 通知：{project}、タスクが完了しました" },
-  ko: { notification: "Claude Code 알림: {project}, 권한이 필요합니다", stop: "Claude Code 알림: {project}, 작업이 완료되었습니다" },
+  en: { notification: "Claude Code needs permission, from {project}", stop: "Claude Code task completed, from {project}" },
+  zh: { notification: "Claude Code 需要权限，来自 {project}", stop: "Claude Code 任务完成，来自 {project}" },
+  ja: { notification: "Claude Code 権限が必要です、{project} より", stop: "Claude Code タスクが完了しました、{project} より" },
+  ko: { notification: "Claude Code 권한이 필요합니다, {project} 에서", stop: "Claude Code 작업이 완료되었습니다, {project} 에서" },
 };
 
 export const DEFAULT_CONFIG: CvoxConfig = {
