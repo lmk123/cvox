@@ -25,16 +25,23 @@ export interface CvoxConfig {
   desktop: DesktopConfig;
 }
 
+export const LOCALE_MESSAGES: Record<string, { notification: string; stop: string }> = {
+  en: { notification: "Claude Code Alert: {project}, needs permission", stop: "Claude Code Alert: {project}, task completed" },
+  zh: { notification: "Claude Code 提醒：{project}，需要权限", stop: "Claude Code 提醒：{project}，任务完成" },
+  ja: { notification: "Claude Code 通知：{project}、権限が必要です", stop: "Claude Code 通知：{project}、タスクが完了しました" },
+  ko: { notification: "Claude Code 알림: {project}, 권한이 필요합니다", stop: "Claude Code 알림: {project}, 작업이 완료되었습니다" },
+};
+
 export const DEFAULT_CONFIG: CvoxConfig = {
   project: "",
   hooks: {
     notification: {
       enabled: true,
-      message: "{project} needs permission",
+      message: LOCALE_MESSAGES.en.notification,
     },
     stop: {
       enabled: true,
-      message: "{project} task completed",
+      message: LOCALE_MESSAGES.en.stop,
     },
   },
   tts: {
@@ -72,12 +79,6 @@ function tryReadJson(filePath: string): Partial<CvoxConfig> | null {
   }
 }
 
-export const LOCALE_MESSAGES: Record<string, { notification: string; stop: string }> = {
-  en: { notification: "{project} needs permission", stop: "{project} task completed" },
-  zh: { notification: "{project} 需要权限", stop: "{project} 任务完成" },
-  ja: { notification: "{project} は権限が必要です", stop: "{project} タスクが完了しました" },
-  ko: { notification: "{project} 권한이 필요합니다", stop: "{project} 작업이 완료되었습니다" },
-};
 
 export function writeProjectConfig(cwd: string, config: Record<string, unknown>): void {
   const filePath = path.join(cwd, ".cvox.json");
