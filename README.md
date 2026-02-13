@@ -29,6 +29,16 @@ cvox init --global
 
 That's it. Claude Code will now speak to you when it needs attention.
 
+## Uninstall
+
+```bash
+# Remove hooks from project settings
+cvox remove
+
+# Remove hooks from global settings
+cvox remove --global
+```
+
 ## Configuration
 
 Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to customize behavior:

@@ -82,7 +82,9 @@ function tryReadJson(filePath: string): Partial<CvoxConfig> | null {
 
 export function writeProjectConfig(cwd: string, config: Record<string, unknown>): void {
   const filePath = path.join(cwd, ".cvox.json");
-  fs.writeFileSync(filePath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  const existing = tryReadJson(filePath) || {};
+  const merged = deepMerge(existing, config);
+  fs.writeFileSync(filePath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
 }
 
 export function loadConfig(cwd: string): CvoxConfig {

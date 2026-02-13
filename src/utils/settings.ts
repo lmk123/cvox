@@ -63,3 +63,26 @@ export function mergeHooks(
   result.hooks = merged;
   return result;
 }
+
+export function removeHooks(settings: Record<string, any>): Record<string, any> {
+  const result = { ...settings };
+  if (!result.hooks) return result;
+
+  const hooks = { ...result.hooks };
+  for (const eventName of Object.keys(hooks)) {
+    if (Array.isArray(hooks[eventName])) {
+      hooks[eventName] = hooks[eventName].filter((m: any) => !isCvoxMatcher(m));
+      if (hooks[eventName].length === 0) {
+        delete hooks[eventName];
+      }
+    }
+  }
+
+  if (Object.keys(hooks).length === 0) {
+    delete result.hooks;
+  } else {
+    result.hooks = hooks;
+  }
+
+  return result;
+}

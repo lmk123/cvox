@@ -33,7 +33,7 @@ export function generateHooksConfig(): CvoxHooksConfig {
       ],
       Stop: [
         {
-          matcher: "",
+          matcher: "", // empty matcher matches all Stop events
           hooks: [{ ...notifyHook }],
         },
       ],

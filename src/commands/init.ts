@@ -61,8 +61,6 @@ export async function initCommand(options: { global?: boolean }): Promise<void> 
     const methodAnswer = await prompt(rl, "Select method [1]: ");
     const selectedMethod = NOTIFY_METHOD_OPTIONS.find((o) => o.key === methodAnswer) ?? NOTIFY_METHOD_OPTIONS[0];
 
-    rl.close();
-
     // 注入 hooks 到 Claude Code settings
     const isGlobal = options.global ?? false;
     const settingsPath = getSettingsPath(isGlobal);

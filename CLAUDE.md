@@ -10,6 +10,7 @@ cvox (Claude Voice Notifications) — 一个 CLI 工具，通过 Claude Code hoo
 
 ```bash
 npm run build    # tsc 编译 TypeScript → dist/
+npm run lint     # Typescript 类型检查
 npm link         # 全局安装用于本地开发
 ```
 
@@ -17,16 +18,18 @@ npm link         # 全局安装用于本地开发
 
 ## Architecture
 
-CLI 基于 Commander.js，两个核心命令：
+CLI 基于 Commander.js，三个核心命令：
 
 - `cvox init [--global]` — 将 hooks 注入 Claude Code settings（项目级或全局），交互选择语言和通知方式
 - `cvox notify` — 由 hooks 调用，读取 stdin JSON 事件并触发 TTS 语音和/或桌面通知
+- `cvox remove [--global]` — 从 Claude Code settings 中移除 cvox hooks
 
 ### 源码结构
 
 - `src/index.ts` — CLI 入口
 - `src/commands/init.ts` — hook 安装逻辑，支持 deep merge 避免覆盖已有配置，交互选择通知方式（语音/桌面/两者）
 - `src/commands/notify.ts` — 事件处理、TTS 调用与桌面通知调用
+- `src/commands/remove.ts` — hook 移除逻辑
 - `src/hooks/config.ts` — hook 定义（notification 对应 permission_prompt，stop 对应任务完成）
 - `src/utils/config.ts` — 三层配置合并：默认值 → `~/.cvox.json` → 项目 `.cvox.json`
 - `src/utils/settings.ts` — Claude settings.json 读写
@@ -37,7 +40,7 @@ CLI 基于 Commander.js，两个核心命令：
 - 跨平台桌面通知：macOS `osascript` / Linux `notify-send` / Windows PowerShell NotifyIcon
 - 配置消息支持 `{project}` 占位符
 - hook 安装使用 marker 标记实现幂等性
-- TypeScript strict mode，CommonJS 输出，target ES2016
+- TypeScript strict mode，ESM 输出（`"module": "node16"`），target ES2020
 
 ### 语言规范
 
