@@ -2,6 +2,7 @@
   "name": "cvox",
   "version": "1.0.0",
   "description": "Claude Voice Notifications - voice alerts for Claude Code hooks",
+  "license": "MIT",
   "bin": {
     "cvox": "dist/index.js"
   },
@@ -10,6 +11,26 @@
   ],
   "scripts": {
     "build": "tsc"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "hooks",
+    "tts",
+    "voice",
+    "notifications",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lmk123/cvox.git"
+  },
+  "homepage": "https://github.com/lmk123/cvox#readme",
+  "bugs": {
+    "url": "https://github.com/lmk123/cvox/issues"
+  },
+  "engines": {
+    "node": ">=16"
   },
   "dependencies": {
     "commander": "^12.1.0"
