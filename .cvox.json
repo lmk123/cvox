@@ -1,11 +1,11 @@
 {
-  "project": "克劳德语音",
+  "project": "c voice",
   "hooks": {
     "notification": {
-      "message": "{project} 需要权限"
+      "message": "Claude Code 需要权限，来自 {project}"
     },
     "stop": {
-      "message": "{project} 任务完成"
+      "message": "Claude Code 任务完成，来自 {project}"
     }
   }
 }
