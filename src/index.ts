@@ -12,13 +12,13 @@ program
 
 program
   .command("init")
-  .description("Inject hooks into Claude Code settings")
+  .description("Set up cvox for your project")
   .option("--global", "Write to global ~/.claude/settings.json")
   .action(initCommand);
 
 program
   .command("notify")
-  .description("Called by hooks, reads stdin and plays voice notifications")
+  .description("Process Claude Code events and play notifications")
   .action(notifyCommand);
 
 program.parse();

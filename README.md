@@ -2,13 +2,13 @@
 
 [![npm version](https://img.shields.io/npm/v/cvox.svg)](https://www.npmjs.com/package/cvox)
 
-Voice notifications for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) hooks. Get spoken alerts or desktop notifications when Claude needs permission or finishes a task — so you can step away from the screen.
+Voice notifications for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Get spoken alerts or desktop notifications when Claude needs permission or finishes a task — so you can step away from the screen.
 
 ## Features
 
 - Cross-platform TTS: macOS (`say`), Linux (`espeak`), Windows (SAPI via PowerShell)
 - Cross-platform desktop notifications: macOS (`osascript`), Linux (`notify-send`), Windows (PowerShell NotifyIcon)
-- Choose notification method during setup: voice only, desktop only, or both
+- Interactive setup: choose language and notification method (voice, desktop, or both)
 - Two hook events: permission prompt and task completion
 - Three-layer config merging: defaults → `~/.cvox.json` → project `.cvox.json`
 - Idempotent installation — safe to run multiple times
@@ -20,10 +20,10 @@ Voice notifications for [Claude Code](https://docs.anthropic.com/en/docs/claude-
 # Install globally
 npm install -g cvox
 
-# Install hooks into your project
+# Set up for your project
 cvox init
 
-# Or install hooks globally (applies to all projects)
+# Or set up globally (applies to all projects)
 cvox init --global
 ```
 

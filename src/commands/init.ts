@@ -83,9 +83,9 @@ export async function initCommand(options: { global?: boolean }): Promise<void> 
     });
 
     const target = isGlobal ? "global" : "project";
-    console.log(`cvox: Configured ${target} hooks → ${settingsPath}`);
-    console.log("  - Notification (permission_prompt)");
-    console.log("  - Stop");
+    console.log(`cvox: Setup complete (${target}) → ${settingsPath}`);
+    console.log("  - Notify on permission prompt");
+    console.log("  - Notify on task completion");
     console.log(`cvox: Generated .cvox.json (${selected.label}, ${selectedMethod.label})`);
   } finally {
     rl.close();
