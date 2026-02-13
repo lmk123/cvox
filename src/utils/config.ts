@@ -9,9 +9,6 @@ export interface HookEventConfig {
 
 export interface TtsConfig {
   enabled: boolean;
-  engine: "auto" | "say" | "espeak" | "sapi";
-  voice: string;
-  rate: number;
 }
 
 export interface DesktopConfig {
@@ -33,18 +30,15 @@ export const DEFAULT_CONFIG: CvoxConfig = {
   hooks: {
     notification: {
       enabled: true,
-      message: "{project} 需要确认权限",
+      message: "{project} needs permission",
     },
     stop: {
       enabled: true,
-      message: "{project} 任务已完成",
+      message: "{project} task completed",
     },
   },
   tts: {
     enabled: true,
-    engine: "auto",
-    voice: "",
-    rate: 0,
   },
   desktop: {
     enabled: false,

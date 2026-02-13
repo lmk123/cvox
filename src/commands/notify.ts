@@ -33,28 +33,20 @@ function speak(message: string, config: CvoxConfig): void {
   const { tts } = config;
   if (!tts.enabled) return;
 
-  const engine = tts.engine === "auto" ? detectEngine() : tts.engine;
-  const args: string[] = [];
+  const engine = detectEngine();
 
   switch (engine) {
     case "say": {
-      if (tts.voice) args.push("-v", tts.voice);
-      if (tts.rate) args.push("-r", String(tts.rate));
-      args.push(message);
-      execFile("say", args, () => {});
+      execFile("say", [message], () => {});
       break;
     }
     case "espeak": {
-      if (tts.voice) args.push("-v", tts.voice);
-      if (tts.rate) args.push("-s", String(tts.rate));
-      args.push(message);
-      execFile("espeak", args, () => {});
+      execFile("espeak", [message], () => {});
       break;
     }
     case "sapi": {
       const ps = `Add-Type -AssemblyName System.Speech; ` +
         `$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; ` +
-        (tts.rate ? `$s.Rate = ${tts.rate}; ` : "") +
         `$s.Speak('${message.replace(/'/g, "''")}')`;
       execFile("powershell", ["-Command", ps], () => {});
       break;

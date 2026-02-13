@@ -46,10 +46,7 @@ Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to
     }
   },
   "tts": {
-    "enabled": true,
-    "engine": "auto",
-    "voice": "",
-    "rate": 0
+    "enabled": true
   }
 }
 ```
@@ -58,13 +55,10 @@ Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to
 |-------|------|---------|-------------|
 | `project` | string | directory name | Project name used in `{project}` placeholder |
 | `hooks.notification.enabled` | boolean | `true` | Enable voice alert on permission prompts |
-| `hooks.notification.message` | string | `"{project} 需要确认权限"` | Message spoken on permission prompt |
+| `hooks.notification.message` | string | `"{project} needs permission"` | Message spoken on permission prompt |
 | `hooks.stop.enabled` | boolean | `true` | Enable voice alert on task completion |
-| `hooks.stop.message` | string | `"{project} 任务已完成"` | Message spoken on task completion |
+| `hooks.stop.message` | string | `"{project} task completed"` | Message spoken on task completion |
 | `tts.enabled` | boolean | `true` | Enable/disable TTS globally |
-| `tts.engine` | string | `"auto"` | TTS engine: `auto`, `say`, `espeak`, or `sapi` |
-| `tts.voice` | string | `""` | System voice name (empty = system default) |
-| `tts.rate` | number | `0` | Speech rate (0 = default, platform-specific) |
 
 Config files are merged with deep merge — you only need to specify the fields you want to override.
 
