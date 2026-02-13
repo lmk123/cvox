@@ -72,6 +72,18 @@ function tryReadJson(filePath: string): Partial<CvoxConfig> | null {
   }
 }
 
+export const LOCALE_MESSAGES: Record<string, { notification: string; stop: string }> = {
+  en: { notification: "{project} needs permission", stop: "{project} task completed" },
+  zh: { notification: "{project} 需要权限", stop: "{project} 任务完成" },
+  ja: { notification: "{project} は権限が必要です", stop: "{project} タスクが完了しました" },
+  ko: { notification: "{project} 권한이 필요합니다", stop: "{project} 작업이 완료되었습니다" },
+};
+
+export function writeProjectConfig(cwd: string, config: Record<string, unknown>): void {
+  const filePath = path.join(cwd, ".cvox.json");
+  fs.writeFileSync(filePath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+}
+
 export function loadConfig(cwd: string): CvoxConfig {
   const projectConfig = tryReadJson(path.join(cwd, ".cvox.json"));
   const globalConfig = tryReadJson(

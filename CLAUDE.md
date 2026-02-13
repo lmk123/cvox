@@ -37,3 +37,7 @@ CLI 基于 Commander.js，两个核心命令：
 - 配置消息支持 `{project}` 占位符
 - hook 安装使用 marker 标记实现幂等性
 - TypeScript strict mode，CommonJS 输出，target ES2016
+
+### 语言规范
+
+用户可见内容（CLI 输出、help 信息、README.md 等）一律使用英文

@@ -12,13 +12,13 @@ program
 
 program
   .command("init")
-  .description("向 Claude Code settings 注入 hooks")
-  .option("--global", "写入全局 ~/.claude/settings.json")
+  .description("Inject hooks into Claude Code settings")
+  .option("--global", "Write to global ~/.claude/settings.json")
   .action(initCommand);
 
 program
   .command("notify")
-  .description("被 hooks 调用，读取 stdin 播放语音通知")
+  .description("Called by hooks, reads stdin and plays voice notifications")
   .action(notifyCommand);
 
 program.parse();

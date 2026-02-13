@@ -1,0 +1,11 @@
+{
+  "project": "Claude Voice",
+  "hooks": {
+    "notification": {
+      "message": "{project} 需要权限"
+    },
+    "stop": {
+      "message": "{project} 任务完成"
+    }
+  }
+}
