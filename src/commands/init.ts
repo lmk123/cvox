@@ -1,10 +1,10 @@
-import { generateHooksConfig } from "../hooks/config";
+import { generateHooksConfig } from "../hooks/config.js";
 import {
   getSettingsPath,
   readSettings,
   writeSettings,
   mergeHooks,
-} from "../utils/settings";
+} from "../utils/settings.js";
 
 export function initCommand(options: { global?: boolean }): void {
   const isGlobal = options.global ?? false;

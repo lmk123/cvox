@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { initCommand } from "./commands/init";
-import { notifyCommand } from "./commands/notify";
+import { initCommand } from "./commands/init.js";
+import { notifyCommand } from "./commands/notify.js";
 
 const program = new Command();
 

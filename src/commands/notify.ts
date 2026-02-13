@@ -1,6 +1,6 @@
 import { execFile } from "child_process";
 import * as path from "path";
-import { loadConfig, CvoxConfig } from "../utils/config";
+import { loadConfig, CvoxConfig } from "../utils/config.js";
 
 interface HookInput {
   hook_event_name?: string;
