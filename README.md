@@ -45,15 +45,15 @@ Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to
 
 ```json
 {
-  "project": "my-app",
+  "project": "my app",
   "hooks": {
     "notification": {
       "enabled": true,
-      "message": "{project} needs permission"
+      "message": "Claude Code needs permission, from {project}"
     },
     "stop": {
       "enabled": true,
-      "message": "{project} task complete"
+      "message": "Claude Code task completed, from {project}"
     }
   },
   "tts": {
@@ -69,9 +69,9 @@ Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to
 |-------|------|---------|-------------|
 | `project` | string | directory name | Project name used in `{project}` placeholder |
 | `hooks.notification.enabled` | boolean | `true` | Enable alert on permission prompts |
-| `hooks.notification.message` | string | `"{project} needs permission"` | Message for permission prompt |
+| `hooks.notification.message` | string | `"Claude Code needs permission, from {project}"` | Message for permission prompt |
 | `hooks.stop.enabled` | boolean | `true` | Enable alert on task completion |
-| `hooks.stop.message` | string | `"{project} task completed"` | Message for task completion |
+| `hooks.stop.message` | string | `"Claude Code task completed, from {project}"` | Message for task completion |
 | `tts.enabled` | boolean | `true` | Enable/disable TTS voice globally |
 | `desktop.enabled` | boolean | `false` | Enable/disable desktop notifications globally |
 
