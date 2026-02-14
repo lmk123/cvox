@@ -87,6 +87,16 @@ export function writeProjectConfig(cwd: string, config: Record<string, unknown>)
   fs.writeFileSync(filePath, JSON.stringify(merged, null, 2) + "\n", "utf-8");
 }
 
+export function removeProjectConfig(dir: string): boolean {
+  const filePath = path.join(dir, ".cvox.json");
+  try {
+    fs.unlinkSync(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function loadConfig(cwd: string): CvoxConfig {
   const projectConfig = tryReadJson(path.join(cwd, ".cvox.json"));
   const globalConfig = tryReadJson(
