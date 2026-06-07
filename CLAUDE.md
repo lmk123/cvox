@@ -21,14 +21,15 @@ npm link         # 全局安装用于本地开发
 排查「某个权限框/事件到底触发了哪个 hook」时用，避免靠耳朵猜（agent 沙箱挡音频、改 hook 没重启等假象）。
 
 ```bash
-npm run probe:install     # 把探针注入项目 .claude/settings.local.json（10 个 hook 事件，全 matcher）
-npm run probe:status      # 查看当前装了几个探针 hook
-npm run probe:uninstall   # 只移除探针，保留 cvox 和用户自定义 hook
+npm run probe:install      # 把探针注入项目 .claude/settings.local.json（10 个 hook 事件，全 matcher），默认精简模式
+npm run probe:install:full # 同上，但完整模式：dump 整个 stdin JSON（含 tool_input）到 probe-full.log
+npm run probe:status       # 查看当前装了几个探针 hook
+npm run probe:uninstall    # 只移除探针，保留 cvox 和用户自定义 hook
 ```
 
-- `probe.cjs` — 探针本体，纯记录 `hook_event_name` + `tool_name` 到 `probe.log`（行首 `[HH:MM:SS] Event Tool`），**不记录 tool_input/command/message** 以避免日志自污染。日志路径可用 `CVOX_PROBE_LOG` 覆盖。
-- `scripts/probe-toggle.cjs` — install/uninstall/status 逻辑。marker 用命令里含子串 `probe.cjs` 识别，故 uninstall 精准只清探针（与 cvox 的 marker `cvox notify` 互不干扰）；install 幂等。settings 路径可用 `CVOX_PROBE_SETTINGS` 覆盖（测试用）。
-- `probe.log` 已加入 `.gitignore`。
+- `probe.cjs` — 探针本体。默认模式纯记录 `hook_event_name` + `tool_name` 到 `probe.log`（行首 `[HH:MM:SS] Event Tool`），**不记录 tool_input/command/message** 以避免日志自污染；带 `--full`（即 `probe:install:full`）则 dump 整个 stdin JSON 到 `probe-full.log`，排查「事件到底携带哪些字段」时用。日志路径可用 `CVOX_PROBE_LOG` 覆盖。
+- `scripts/probe-toggle.cjs` — install/uninstall/status 逻辑。marker 用命令里含子串 `probe.cjs` 识别（完整模式命令 `probe.cjs --full` 同样匹配），故一次 uninstall 即可清掉任意模式的探针（与 cvox 的 marker `cvox notify` 互不干扰）；install 幂等，且会先清旧探针再装，故 full/simple 间可直接 re-install 切换。settings 路径可用 `CVOX_PROBE_SETTINGS` 覆盖（测试用）。
+- `probe.log` / `probe-full.log` 已加入 `.gitignore`。
 - ⚠️ **改完 settings 需重启 Claude Desktop / 新开会话才生效**；在 agent 的 Bash 沙箱里跑 install 会 EPERM（settings.local.json 受保护），需在普通终端执行。
 
 ## Architecture

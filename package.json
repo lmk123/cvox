@@ -16,6 +16,7 @@
     "prepublishOnly": "npm run build",
     "test": "bash test.sh",
     "probe:install": "node scripts/probe-toggle.cjs install",
+    "probe:install:full": "node scripts/probe-toggle.cjs install --full",
     "probe:uninstall": "node scripts/probe-toggle.cjs uninstall",
     "probe:status": "node scripts/probe-toggle.cjs status"
   },

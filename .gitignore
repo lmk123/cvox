@@ -15,3 +15,4 @@ yarn-error.log*
 
 # cvox hook probe log (forensic, local-only)
 /probe.log
+/probe-full.log

@@ -1,13 +1,19 @@
 #!/usr/bin/env node
 // Install / uninstall the cvox hook probe into project Claude settings.
 //
-//   node scripts/probe-toggle.cjs install     (or: npm run probe:install)
-//   node scripts/probe-toggle.cjs uninstall   (or: npm run probe:uninstall)
+//   node scripts/probe-toggle.cjs install          (or: npm run probe:install)
+//   node scripts/probe-toggle.cjs install --full   (or: npm run probe:install:full)
+//   node scripts/probe-toggle.cjs uninstall        (or: npm run probe:uninstall)
 //   node scripts/probe-toggle.cjs status
 //
-// The probe is a command hook that runs probe.cjs. It is identified by the
-// marker substring "probe.cjs" in the command, so uninstall removes ONLY the
-// probe and leaves cvox hooks (marker "cvox notify") and any user hooks intact.
+// --full installs the probe in full-payload mode (dumps the entire stdin JSON to
+// probe-full.log); default mode records only event + tool to probe.log.
+//
+// The probe is a command hook that runs probe.cjs (with or without --full). It
+// is identified by the marker substring "probe.cjs" in the command, so a single
+// uninstall removes the probe in EITHER mode and leaves cvox hooks (marker
+// "cvox notify") and any user hooks intact. install clears stale probe hooks
+// first, so switching between simple and full mode is just a re-install.
 //
 // Settings file: .claude/settings.local.json under the repo root (not committed,
 // per .gitignore convention for local settings). Override with CVOX_PROBE_SETTINGS.
@@ -17,8 +23,9 @@ const path = require("path");
 
 const REPO = path.resolve(__dirname, "..");
 const PROBE = path.join(REPO, "probe.cjs");
-const PROBE_CMD = `node ${PROBE}`;
-const MARKER = "probe.cjs"; // substring that identifies a probe hook
+const FULL = process.argv.includes("--full"); // full-payload mode
+const PROBE_CMD = FULL ? `node ${PROBE} --full` : `node ${PROBE}`;
+const MARKER = "probe.cjs"; // substring that identifies a probe hook (any mode)
 const SETTINGS =
   process.env.CVOX_PROBE_SETTINGS ||
   path.join(REPO, ".claude", "settings.local.json");
@@ -135,8 +142,12 @@ function main() {
     stripProbe(settings); // clear stale probe hooks first (idempotent reinstall)
     const added = addProbe(settings);
     writeSettings(settings);
-    console.log(`cvox probe: installed on ${added} event(s) -> ${SETTINGS}`);
-    console.log(`cvox probe: log file -> ${path.join(REPO, "probe.log")}`);
+    const mode = FULL ? "full" : "simple";
+    const logFile = path.join(REPO, FULL ? "probe-full.log" : "probe.log");
+    console.log(
+      `cvox probe: installed (${mode} mode) on ${added} event(s) -> ${SETTINGS}`
+    );
+    console.log(`cvox probe: log file -> ${logFile}`);
     console.log(
       "cvox probe: restart Claude Desktop / start a new session for hooks to load."
     );
@@ -150,7 +161,7 @@ function main() {
     const n = countProbe(settings);
     console.log(`cvox probe: ${n} probe hook(s) currently installed in ${SETTINGS}`);
   } else {
-    console.error("usage: probe-toggle.cjs <install|uninstall|status>");
+    console.error("usage: probe-toggle.cjs <install [--full]|uninstall|status>");
     process.exit(1);
   }
 }
