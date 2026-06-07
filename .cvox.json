@@ -1,5 +1,5 @@
 {
-  "project": "cvox",
+  "project": "c vox",
   "hooks": {
     "notification": {
       "message": "Claude Code 需要权限，来自 {project}"
