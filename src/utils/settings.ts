@@ -50,14 +50,15 @@ export function mergeHooks(
   settings: Record<string, any>,
   cvoxHooks: CvoxHooksConfig
 ): Record<string, any> {
-  const result = { ...settings };
-  const existingHooks = result.hooks || {};
-  const merged = { ...existingHooks };
+  // First strip every existing cvox matcher (matched by the "cvox notify"
+  // command marker, regardless of event name) so a re-run cleans up hooks that
+  // newer versions no longer mount — e.g. the legacy Notification hook.
+  const result = removeHooks(settings);
+  const merged = { ...(result.hooks || {}) };
 
   for (const [eventName, cvoxMatchers] of Object.entries(cvoxHooks.hooks)) {
     const existing: any[] = merged[eventName] || [];
-    const filtered = existing.filter((m: any) => !isCvoxMatcher(m));
-    merged[eventName] = [...filtered, ...cvoxMatchers];
+    merged[eventName] = [...existing, ...cvoxMatchers];
   }
 
   result.hooks = merged;

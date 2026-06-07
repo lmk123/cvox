@@ -16,6 +16,21 @@ npm link         # 全局安装用于本地开发
 
 无测试框架、无 linter 配置。
 
+## Hook 探针（调试工具）
+
+排查「某个权限框/事件到底触发了哪个 hook」时用，避免靠耳朵猜（agent 沙箱挡音频、改 hook 没重启等假象）。
+
+```bash
+npm run probe:install     # 把探针注入项目 .claude/settings.local.json（10 个 hook 事件，全 matcher）
+npm run probe:status      # 查看当前装了几个探针 hook
+npm run probe:uninstall   # 只移除探针，保留 cvox 和用户自定义 hook
+```
+
+- `probe.cjs` — 探针本体，纯记录 `hook_event_name` + `tool_name` 到 `probe.log`（行首 `[HH:MM:SS] Event Tool`），**不记录 tool_input/command/message** 以避免日志自污染。日志路径可用 `CVOX_PROBE_LOG` 覆盖。
+- `scripts/probe-toggle.cjs` — install/uninstall/status 逻辑。marker 用命令里含子串 `probe.cjs` 识别，故 uninstall 精准只清探针（与 cvox 的 marker `cvox notify` 互不干扰）；install 幂等。settings 路径可用 `CVOX_PROBE_SETTINGS` 覆盖（测试用）。
+- `probe.log` 已加入 `.gitignore`。
+- ⚠️ **改完 settings 需重启 Claude Desktop / 新开会话才生效**；在 agent 的 Bash 沙箱里跑 install 会 EPERM（settings.local.json 受保护），需在普通终端执行。
+
 ## Architecture
 
 CLI 基于 Commander.js，三个核心命令：
@@ -30,7 +45,7 @@ CLI 基于 Commander.js，三个核心命令：
 - `src/commands/init.ts` — hook 安装逻辑，支持 deep merge 避免覆盖已有配置，交互选择通知方式（语音/桌面/两者）
 - `src/commands/notify.ts` — 事件处理、TTS 调用与桌面通知调用
 - `src/commands/remove.ts` — hook 移除逻辑
-- `src/hooks/config.ts` — hook 定义（notification 对应 permission_prompt，stop 对应任务完成）
+- `src/hooks/config.ts` — hook 定义（权限提示只挂 PermissionRequest(matcher `""`)：CLI 和 Desktop 权限框都触发 PermissionRequest；CLI 额外触发的 Notification(matcher `permission_prompt`) Desktop 不触发，故已弃用以避免 CLI 双响；stop 对应任务完成）
 - `src/utils/config.ts` — 三层配置合并：默认值 → `~/.cvox.json` → 项目 `.cvox.json`
 - `src/utils/settings.ts` — Claude settings.json 读写
 

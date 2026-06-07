@@ -1,5 +1,5 @@
 {
-  "project": "c vox",
+  "project": "cvox",
   "hooks": {
     "notification": {
       "message": "Claude Code 需要权限，来自 {project}"
@@ -12,6 +12,6 @@
     "enabled": true
   },
   "desktop": {
-    "enabled": true
+    "enabled": false
   }
 }

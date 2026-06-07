@@ -83,6 +83,25 @@ Config files are merged with deep merge — you only need to specify the fields 
 2. When Claude Code triggers a hook event (permission prompt or stop), it pipes a JSON payload via stdin to `cvox notify`
 3. `cvox notify` reads the event, loads your config, and calls the platform TTS engine and/or desktop notification to alert you
 
+## Compatibility
+
+Permission-prompt and task-completion alerts work in **both** the Claude Code CLI and the Claude Desktop app.
+
+| Alert | Claude Code CLI | Claude Desktop app |
+|-------|:---------------:|:------------------:|
+| Permission prompt | ✅ | ✅ |
+| Task completion (`Stop`) | ✅ | ✅ |
+
+### How permission alerts are wired
+
+Permission prompts fire a `PermissionRequest` hook in **both** the Claude Code CLI and the Claude Desktop app, so cvox mounts that single hook to cover both.
+
+The CLI also fires a legacy `Notification` hook (matcher `permission_prompt`) when it asks for permission, but the Claude Desktop app renders its permission dialog through native UI and does **not** fire `Notification`. Since `PermissionRequest` alone covers both surfaces — and mounting `Notification` too made the CLI speak twice — cvox no longer uses the `Notification` hook.
+
+## Upgrading from v1
+
+v2 settles on the `PermissionRequest` hook for permission alerts. **After upgrading, re-run `cvox init`** (and `cvox init --global` if you set it up globally) so your Claude Code settings are rewritten — this also automatically cleans up the old `Notification` hook from earlier versions. Your `.cvox.json` does not need to change.
+
 ## License
 
 MIT

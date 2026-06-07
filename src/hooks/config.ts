@@ -11,7 +11,7 @@ export interface CvoxHookMatcher {
 
 export interface CvoxHooksConfig {
   hooks: {
-    Notification: CvoxHookMatcher[];
+    PermissionRequest: CvoxHookMatcher[];
     Stop: CvoxHookMatcher[];
   };
 }
@@ -25,9 +25,13 @@ export function generateHooksConfig(): CvoxHooksConfig {
 
   return {
     hooks: {
-      Notification: [
+      // Permission prompts fire PermissionRequest on both the Claude Code CLI
+      // and the Claude Desktop app, so this single hook covers both. (The CLI
+      // also fires a legacy Notification hook that Desktop does not; cvox no
+      // longer uses it, since PermissionRequest alone is enough.)
+      PermissionRequest: [
         {
-          matcher: "permission_prompt",
+          matcher: "", // empty matcher matches all permission requests
           hooks: [notifyHook],
         },
       ],

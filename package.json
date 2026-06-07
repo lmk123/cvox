@@ -1,6 +1,6 @@
 {
   "name": "cvox",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Claude Voice Notifications - voice alerts and desktop notifications for Claude Code.",
   "type": "module",
   "license": "MIT",
@@ -13,7 +13,10 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "test": "bash test.sh"
+    "test": "bash test.sh",
+    "probe:install": "node scripts/probe-toggle.cjs install",
+    "probe:uninstall": "node scripts/probe-toggle.cjs uninstall",
+    "probe:status": "node scripts/probe-toggle.cjs status"
   },
   "keywords": [
     "claude",

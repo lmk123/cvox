@@ -30,7 +30,9 @@ type EventKey = "notification" | "stop";
 
 function mapEventName(hookEventName: string): EventKey | null {
   const map: Record<string, EventKey> = {
-    Notification: "notification",
+    // PermissionRequest fires on permission prompts in both the CLI and the
+    // Claude Desktop app; it maps to the "notification" config.
+    PermissionRequest: "notification",
     Stop: "stop",
   };
   return map[hookEventName] ?? null;

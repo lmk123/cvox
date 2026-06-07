@@ -12,3 +12,6 @@ yarn-error.log*
 .vscode/*
 /.idea
 /dist
+
+# cvox hook probe log (forensic, local-only)
+/probe.log
