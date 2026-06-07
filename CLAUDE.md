@@ -44,7 +44,7 @@ CLI 基于 Commander.js，三个核心命令：
 
 - `src/index.ts` — CLI 入口
 - `src/commands/init.ts` — hook 安装逻辑，支持 deep merge 避免覆盖已有配置，交互选择通知方式（语音/桌面/两者）
-- `src/commands/notify.ts` — 事件处理、TTS 调用与桌面通知调用
+- `src/commands/notify.ts` — 事件处理、TTS 调用与桌面通知调用；含内置静音名单 `MUTED_NOTIFICATION_TOOLS`（见关键设计）
 - `src/commands/remove.ts` — hook 移除逻辑
 - `src/hooks/config.ts` — hook 定义（权限提示只挂 PermissionRequest(matcher `""`)：CLI 和 Desktop 权限框都触发 PermissionRequest；CLI 额外触发的 Notification(matcher `permission_prompt`) Desktop 不触发，故已弃用以避免 CLI 双响；stop 对应任务完成）
 - `src/utils/config.ts` — 三层配置合并：默认值 → `~/.cvox.json` → 项目 `.cvox.json`
@@ -55,6 +55,7 @@ CLI 基于 Commander.js，三个核心命令：
 - 跨平台 TTS：macOS `say` / Linux `espeak` / Windows SAPI PowerShell
 - 跨平台桌面通知：macOS `osascript` / Linux `notify-send` / Windows PowerShell NotifyIcon
 - 配置消息支持 `{project}` 占位符
+- **内置静音名单**（`notify.ts` 的 `MUTED_NOTIFICATION_TOOLS`）：`PermissionRequest` hook 在工具「进入权限流程」时就触发，早于「弹框」动作；Claude Desktop 的 Preview 类工具会被自动放行、根本不弹框，但 hook 照样触发导致多余语音。hook 输入无任何字段能区分「真要确认 vs 自动放行」（只有 `tool_name`/`tool_input`/`permission_suggestions`，且 `permission_suggestions` 有无与是否弹框无关、会判反），故按 `tool_name` 匹配名单静音。语法：单数组、仅 `*` 通配、`!` 前缀反排除、后项覆盖前项（贴近 Claude Code 权限规则）。当前只罩 `mcp__Claude_Preview__*`；某 Preview 工具若确会弹框，追加 `"!mcp__Claude_Preview__preview_xxx"` 放行。仅作用于 notification（权限）路径，不影响 stop。对用户无感知，不暴露为配置项。
 - hook 安装使用 marker 标记实现幂等性
 - TypeScript strict mode，ESM 输出（`"module": "node16"`），target ES2020
 

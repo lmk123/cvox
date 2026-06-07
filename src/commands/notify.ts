@@ -11,6 +11,42 @@ function handleExecError(err: ExecFileException | null): void {
 interface HookInput {
   hook_event_name?: string;
   cwd?: string;
+  tool_name?: string;
+}
+
+// Built-in mute list for the notification (PermissionRequest) path.
+// Claude Desktop's Preview tools are auto-approved without ever showing a
+// permission dialog, so a PermissionRequest hook fires (and cvox would speak)
+// even though the user is never actually prompted. Mute the whole Preview
+// namespace to kill that spurious sound.
+//
+// Patterns: only `*` is special (matches any run of chars, incl. empty). A
+// leading `!` negates (un-mutes). Patterns are evaluated in order; the last
+// one that matches a tool name wins — so add e.g.
+// "!mcp__Claude_Preview__preview_eval" after the wildcard to re-enable the
+// sound for a tool that turns out to really prompt.
+const MUTED_NOTIFICATION_TOOLS: string[] = [
+  "mcp__Claude_Preview__*",
+];
+
+function globToRegExp(pattern: string): RegExp {
+  // Escape regex metachars (not `*`), then turn the literal `*` into `.*`.
+  const escaped = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*/g, ".*");
+  return new RegExp(`^${escaped}$`);
+}
+
+function isToolMuted(toolName: string): boolean {
+  let muted = false;
+  for (const pattern of MUTED_NOTIFICATION_TOOLS) {
+    const negated = pattern.startsWith("!");
+    const body = negated ? pattern.slice(1) : pattern;
+    if (globToRegExp(body).test(toolName)) {
+      muted = !negated; // last matching pattern wins
+    }
+  }
+  return muted;
 }
 
 function readStdin(): Promise<string> {
@@ -120,6 +156,13 @@ export async function notifyCommand(): Promise<void> {
 
   const eventKey = mapEventName(eventName);
   if (!eventKey) return;
+
+  // Some tools (e.g. Claude Desktop's Preview tools) fire a PermissionRequest
+  // hook but are auto-approved without ever prompting the user. Stay silent
+  // for those to avoid spurious notification sounds.
+  if (eventKey === "notification" && input.tool_name && isToolMuted(input.tool_name)) {
+    return;
+  }
 
   const cwd = input.cwd || process.cwd();
   const config = loadConfig(cwd);
