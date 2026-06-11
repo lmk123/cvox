@@ -1,6 +1,6 @@
 {
   "name": "cvox",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Claude Voice Notifications - voice alerts and desktop notifications for Claude Code.",
   "type": "module",
   "license": "MIT",
