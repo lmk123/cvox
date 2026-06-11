@@ -55,7 +55,7 @@ CLI 基于 Commander.js，三个核心命令：
 - 跨平台 TTS：macOS `say` / Linux `espeak` / Windows SAPI PowerShell
 - 跨平台桌面通知：macOS `osascript` / Linux `notify-send` / Windows PowerShell NotifyIcon
 - 配置消息支持 `{project}` 占位符
-- **内置静音名单**（`notify.ts` 的 `MUTED_NOTIFICATION_TOOLS`）：`PermissionRequest` hook 在工具「进入权限流程」时就触发，早于「弹框」动作；Claude Desktop 的 Preview 类工具会被自动放行、根本不弹框，但 hook 照样触发导致多余语音。hook 输入无任何字段能区分「真要确认 vs 自动放行」（只有 `tool_name`/`tool_input`/`permission_suggestions`，且 `permission_suggestions` 有无与是否弹框无关、会判反），故按 `tool_name` 匹配名单静音。语法：单数组、仅 `*` 通配、`!` 前缀反排除、后项覆盖前项（贴近 Claude Code 权限规则）。当前只罩 `mcp__Claude_Preview__*`；某 Preview 工具若确会弹框，追加 `"!mcp__Claude_Preview__preview_xxx"` 放行。仅作用于 notification（权限）路径，不影响 stop。对用户无感知，不暴露为配置项。
+- **内置静音名单**（`notify.ts` 的 `MUTED_NOTIFICATION_TOOLS`）：`PermissionRequest` hook 在工具「进入权限流程」时就触发，早于「弹框」动作；Claude Desktop 的 Preview 类工具会被自动放行、根本不弹框，但 hook 照样触发导致多余语音。hook 输入无任何字段能区分「真要确认 vs 自动放行」（只有 `tool_name`/`tool_input`/`permission_suggestions`，且 `permission_suggestions` 有无与是否弹框无关、会判反），故按 `tool_name` 匹配名单静音。语法：单数组、仅 `*` 通配、`!` 前缀反排除、后项覆盖前项（贴近 Claude Code 权限规则）。当前罩 `mcp__Claude_Preview__*` 并反排除 `!mcp__Claude_Preview__preview_start`（该工具在 Claude Desktop 确会弹确认框，被通配符误伤）；其它 Preview 工具若也确会弹框，照此追加 `"!mcp__Claude_Preview__preview_xxx"` 放行。仅作用于 notification（权限）路径，不影响 stop。对用户无感知，不暴露为配置项。
 - hook 安装使用 marker 标记实现幂等性
 - TypeScript strict mode，ESM 输出（`"module": "node16"`），target ES2020
 

@@ -27,6 +27,7 @@ interface HookInput {
 // sound for a tool that turns out to really prompt.
 const MUTED_NOTIFICATION_TOOLS: string[] = [
   "mcp__Claude_Preview__*",
+  "!mcp__Claude_Preview__preview_start",
 ];
 
 function globToRegExp(pattern: string): RegExp {
