@@ -10,9 +10,9 @@ npm run build --silent
 echo "Build OK"
 echo ""
 
-# Step 2: Test Notification event
-echo "--- Test: Notification event ---"
-if echo '{"hook_event_name":"Notification"}' | node dist/index.js notify; then
+# Step 2: Test PermissionRequest event
+echo "--- Test: PermissionRequest event ---"
+if echo '{"hook_event_name":"PermissionRequest"}' | node dist/index.js notify; then
   echo "PASS"
 else
   echo "FAIL (exit code $?)"

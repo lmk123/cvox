@@ -11,10 +11,11 @@ cvox (Claude Voice Notifications) — 一个 CLI 工具，通过 Claude Code hoo
 ```bash
 npm run build    # tsc 编译 TypeScript → dist/
 npm run lint     # Typescript 类型检查
+npm run test     # bash test.sh：编译后对 PermissionRequest/Stop 事件做冒烟测试
 npm link         # 全局安装用于本地开发
 ```
 
-无测试框架、无 linter 配置。
+有一个 `test.sh` 冒烟测试（`npm run test`），无单测框架、无 linter 配置。
 
 ## Hook 探针（调试工具）
 
