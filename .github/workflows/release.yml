@@ -48,11 +48,6 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      # Trusted publishing requires npm >= 11.5.1; upgrade to be independent of
-      # whatever npm Node ships with.
-      - name: Upgrade npm
-        run: npm install -g npm@latest
-
       - name: Resolve version and npm dist-tag
         id: ver
         run: |
