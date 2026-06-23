@@ -1,0 +1,47 @@
+{
+  "name": "cvox",
+  "version": "3.0.0-beta.0",
+  "description": "Claude Voice Notifications - voice alerts and desktop notifications for Claude Code.",
+  "bin": {
+    "cvox": "bin/cvox.cjs"
+  },
+  "scripts": {
+    "postinstall": "node scripts/npm-postinstall.cjs",
+    "probe:install": "node scripts/probe-toggle.cjs install",
+    "probe:install:full": "node scripts/probe-toggle.cjs install --full",
+    "probe:uninstall": "node scripts/probe-toggle.cjs uninstall",
+    "probe:status": "node scripts/probe-toggle.cjs status"
+  },
+  "files": [
+    "bin/cvox.cjs",
+    "scripts/npm-postinstall.cjs"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "notifications",
+    "tts",
+    "voice"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lmk123/cvox.git"
+  },
+  "homepage": "https://github.com/lmk123/cvox#readme",
+  "bugs": {
+    "url": "https://github.com/lmk123/cvox/issues"
+  },
+  "license": "MIT"
+}

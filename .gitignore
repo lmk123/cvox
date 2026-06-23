@@ -7,6 +7,14 @@
 /cvox
 /dist
 
+# npm-fetched / locally-built Go binary (bin/cvox.cjs launcher IS tracked)
+/bin/cvox-bin
+/bin/cvox-bin.exe
+
+# node
+/node_modules
+*.tgz
+
 # cvox hook probe log (forensic, local-only)
 /probe.log
 /probe-full.log
