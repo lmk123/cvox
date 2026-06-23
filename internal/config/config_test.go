@@ -9,10 +9,15 @@ import (
 
 func TestLoadDefaults(t *testing.T) {
 	// No config files: defaults only, tts/desktop off, project from cwd.
-	cwd, _ := os.Getwd()
-	cfg := Load(cwd)
-	if cfg.Project != filepath.Base(cwd) {
-		t.Errorf("Load: project = %q, want %q", cfg.Project, filepath.Base(cwd))
+	tmpDir := t.TempDir()
+	// Mock home dir to avoid reading the user's actual ~/.cvox.json
+	oldHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", oldHome)
+
+	cfg := Load(tmpDir)
+	if cfg.Project != filepath.Base(tmpDir) {
+		t.Errorf("Load: project = %q, want %q", cfg.Project, filepath.Base(tmpDir))
 	}
 	if cfg.TTS.Enabled {
 		t.Error("Load: tts.enabled should be false by default")
@@ -30,12 +35,16 @@ func TestLoadDefaults(t *testing.T) {
 
 func TestLoadWithProjectConfig(t *testing.T) {
 	tmpDir := t.TempDir()
+	notificationMsg := "test notification"
+	stopMsg := "test stop"
+	ttsEnabled := true
+	desktopEnabled := false
 	if err := WriteProject(tmpDir, ProjectInput{
 		Project:         "testproj",
-		NotificationMsg: "test notification",
-		StopMsg:         "test stop",
-		TTSEnabled:      true,
-		DesktopEnabled:  false,
+		NotificationMsg: &notificationMsg,
+		StopMsg:         &stopMsg,
+		TTSEnabled:      &ttsEnabled,
+		DesktopEnabled:  &desktopEnabled,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +69,16 @@ func TestLoadWithProjectConfig(t *testing.T) {
 func TestLoadWithGlobalConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	globalDir := t.TempDir()
+	notificationMsg := "global notification"
+	stopMsg := "global stop"
+	ttsEnabled := false
+	desktopEnabled := true
 	if err := WriteProject(globalDir, ProjectInput{
 		Project:         "", // not set: should fall back to cwd
-		NotificationMsg: "global notification",
-		StopMsg:         "global stop",
-		TTSEnabled:      false,
-		DesktopEnabled:  true,
+		NotificationMsg: &notificationMsg,
+		StopMsg:         &stopMsg,
+		TTSEnabled:      &ttsEnabled,
+		DesktopEnabled:  &desktopEnabled,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -93,21 +106,29 @@ func TestLoadWithGlobalConfig(t *testing.T) {
 func TestLoadProjectOverridesGlobal(t *testing.T) {
 	tmpDir := t.TempDir()
 	globalDir := t.TempDir()
+	globalNotificationMsg := "global notification"
+	globalStopMsg := "global stop"
+	globalTtsEnabled := false
+	globalDesktopEnabled := true
 	if err := WriteProject(globalDir, ProjectInput{
 		Project:         "globalproj",
-		NotificationMsg: "global notification",
-		StopMsg:         "global stop",
-		TTSEnabled:      false,
-		DesktopEnabled:  true,
+		NotificationMsg: &globalNotificationMsg,
+		StopMsg:         &globalStopMsg,
+		TTSEnabled:      &globalTtsEnabled,
+		DesktopEnabled:  &globalDesktopEnabled,
 	}); err != nil {
 		t.Fatal(err)
 	}
+	projNotificationMsg := "proj notification"
+	projStopMsg := "proj stop"
+	projTtsEnabled := true
+	projDesktopEnabled := false
 	if err := WriteProject(tmpDir, ProjectInput{
 		Project:         "proj",
-		NotificationMsg: "proj notification",
-		StopMsg:         "proj stop",
-		TTSEnabled:      true,
-		DesktopEnabled:  false,
+		NotificationMsg: &projNotificationMsg,
+		StopMsg:         &projStopMsg,
+		TTSEnabled:      &projTtsEnabled,
+		DesktopEnabled:  &projDesktopEnabled,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -137,12 +158,16 @@ func TestWriteProjectPreservesUnknownKeys(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tmpDir, ".cvox.json"), initial, 0o644); err != nil {
 		t.Fatal(err)
 	}
+	notificationMsg := "new notification"
+	stopMsg := "new stop"
+	ttsEnabled := true
+	desktopEnabled := false
 	if err := WriteProject(tmpDir, ProjectInput{
 		Project:         "new",
-		NotificationMsg: "new notification",
-		StopMsg:         "new stop",
-		TTSEnabled:      true,
-		DesktopEnabled:  false,
+		NotificationMsg: &notificationMsg,
+		StopMsg:         &stopMsg,
+		TTSEnabled:      &ttsEnabled,
+		DesktopEnabled:  &desktopEnabled,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -173,5 +198,34 @@ func TestRemoveProject(t *testing.T) {
 	}
 	if RemoveProject(tmpDir) {
 		t.Error("RemoveProject: should return false when file didn't exist")
+	}
+}
+
+func TestWriteProjectInheritsNilFields(t *testing.T) {
+	tmpDir := t.TempDir()
+	// Write with nil fields (inherit).
+	if err := WriteProject(tmpDir, ProjectInput{
+		Project: "testproj",
+		// All other fields are nil → inherit.
+	}); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(tmpDir, ".cvox.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contentStr := string(content)
+	// Only project should be written.
+	if !strings.Contains(contentStr, `"project": "testproj"`) {
+		t.Error("WriteProject: project should be written")
+	}
+	if strings.Contains(contentStr, `"hooks"`) {
+		t.Error("WriteProject: hooks should not be written when nil")
+	}
+	if strings.Contains(contentStr, `"tts"`) {
+		t.Error("WriteProject: tts should not be written when nil")
+	}
+	if strings.Contains(contentStr, `"desktop"`) {
+		t.Error("WriteProject: desktop should not be written when nil")
 	}
 }

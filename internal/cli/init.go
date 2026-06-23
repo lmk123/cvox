@@ -15,6 +15,7 @@ import (
 )
 
 // localeOption pairs a locale code with its display label and numeric key.
+// An empty code means "inherit" (don't set in .cvox.json).
 type localeOption struct {
 	key   string
 	code  string
@@ -22,25 +23,32 @@ type localeOption struct {
 }
 
 var localeOptions = []localeOption{
-	{"1", "en", "English"},
-	{"2", "zh", "中文"},
-	{"3", "ja", "日本語"},
-	{"4", "ko", "한국어"},
+	{"1", "", "Inherit"},
+	{"2", "en", "English"},
+	{"3", "zh", "中文"},
+	{"4", "ja", "日本語"},
+	{"5", "ko", "한국어"},
 }
 
 // notifyMethodOption pairs a method key with its display label and the
-// tts/desktop flags it sets.
+// tts/desktop flags it sets. Nil flags mean "inherit" (don't set in .cvox.json).
 type notifyMethodOption struct {
 	key     string
 	label   string
-	tts     bool
-	desktop bool
+	tts     *bool
+	desktop *bool
 }
 
 var notifyMethodOptions = []notifyMethodOption{
-	{"1", "Voice only", true, false},
-	{"2", "Desktop notification only", false, true},
-	{"3", "Both voice and desktop", true, true},
+	{"1", "Inherit", nil, nil},
+	{"2", "Voice only", ptr(true), ptr(false)},
+	{"3", "Desktop notification only", ptr(false), ptr(true)},
+	{"4", "Both voice and desktop", ptr(true), ptr(true)},
+}
+
+// ptr returns a pointer to b.
+func ptr(b bool) *bool {
+	return &b
 }
 
 // Init sets up cvox for the current project or globally.
@@ -87,13 +95,37 @@ func Init(args []string) error {
 	}
 
 	// Question 2: language.
+	// Load existing config to show inherited value.
+	existingConfig := config.Load(cwd)
+	inheritedLocale := "en" // default
+	if existingConfig.Hooks.Notification.Message != "" {
+		// Detect locale from the message (simple heuristic: match against known messages)
+		for code, msgs := range config.Locales {
+			if existingConfig.Hooks.Notification.Message == msgs.Notification {
+				inheritedLocale = code
+				break
+			}
+		}
+	}
+	inheritedLabel := ""
+	for _, opt := range localeOptions {
+		if opt.code == inheritedLocale {
+			inheritedLabel = opt.label
+			break
+		}
+	}
+
 	fmt.Println("Voice language:")
 	for _, opt := range localeOptions {
 		defaultMark := ""
 		if opt.key == "1" {
 			defaultMark = " (default)"
 		}
-		fmt.Printf("  %s. %s%s\n", opt.key, opt.label, defaultMark)
+		label := opt.label
+		if opt.code == "" && inheritedLabel != "" {
+			label = fmt.Sprintf("%s (%s)", opt.label, inheritedLabel)
+		}
+		fmt.Printf("  %s. %s%s\n", opt.key, label, defaultMark)
 	}
 	fmt.Print("Select language [1]: ")
 	localeAnswer, _ := r.ReadString('\n')
@@ -104,16 +136,36 @@ func Init(args []string) error {
 			break
 		}
 	}
-	messages := config.Locales[selected.code]
+	messages := config.Locales["en"] // default fallback
+	if selected.code != "" {
+		messages = config.Locales[selected.code]
+	} else {
+		// Inherit: use the inherited locale's messages
+		messages = config.Locales[inheritedLocale]
+	}
 
 	// Question 3: notification method.
+	// Show inherited method.
+	inheritedMethodLabel := "Voice only (default)"
+	if existingConfig.TTS.Enabled && existingConfig.Desktop.Enabled {
+		inheritedMethodLabel = "Both voice and desktop"
+	} else if existingConfig.Desktop.Enabled {
+		inheritedMethodLabel = "Desktop notification only"
+	} else if !existingConfig.TTS.Enabled && !existingConfig.Desktop.Enabled {
+		inheritedMethodLabel = "None (silent)"
+	}
+
 	fmt.Println("Notification method:")
 	for _, opt := range notifyMethodOptions {
 		defaultMark := ""
 		if opt.key == "1" {
 			defaultMark = " (default)"
 		}
-		fmt.Printf("  %s. %s%s\n", opt.key, opt.label, defaultMark)
+		label := opt.label
+		if opt.tts == nil && opt.desktop == nil {
+			label = fmt.Sprintf("%s (%s)", opt.label, inheritedMethodLabel)
+		}
+		fmt.Printf("  %s. %s%s\n", opt.key, label, defaultMark)
 	}
 	fmt.Print("Select method [1]: ")
 	methodAnswer, _ := r.ReadString('\n')
@@ -176,10 +228,18 @@ func Init(args []string) error {
 		}
 		configDir = home
 	}
+
+	// Convert selected values to pointers for ProjectInput.
+	// Nil means "inherit" (don't write to .cvox.json).
+	var notificationMsg, stopMsg *string
+	if selected.code != "" {
+		notificationMsg = &messages.Notification
+		stopMsg = &messages.Stop
+	}
 	if err := config.WriteProject(configDir, config.ProjectInput{
 		Project:         projectName,
-		NotificationMsg: messages.Notification,
-		StopMsg:         messages.Stop,
+		NotificationMsg: notificationMsg,
+		StopMsg:         stopMsg,
 		TTSEnabled:      selectedMethod.tts,
 		DesktopEnabled:  selectedMethod.desktop,
 	}); err != nil {

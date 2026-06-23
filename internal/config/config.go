@@ -147,18 +147,21 @@ func Load(cwd string) Config {
 }
 
 // ProjectInput is what WriteProject persists into a .cvox.json.
+// Nil fields mean "inherit" — they are not written to the file.
 type ProjectInput struct {
 	Project         string
-	NotificationMsg string
-	StopMsg         string
-	TTSEnabled      bool
-	DesktopEnabled  bool
+	NotificationMsg *string
+	StopMsg         *string
+	TTSEnabled      *bool
+	DesktopEnabled  *bool
 }
 
 // WriteProject writes (or updates) dir/.cvox.json with the given values. It sets
 // only the specific leaf fields onto any existing file content — preserving
 // unknown keys and key order, matching the TS deep-merge-onto-existing — then
 // pretty-prints with 2-space indentation and a trailing newline.
+//
+// Nil fields in ProjectInput are not written (inherit from parent layers).
 //
 // Note the written shape deliberately omits hooks.*.enabled (the messages are
 // the only per-event field init writes), mirroring the original.
@@ -178,10 +181,18 @@ func WriteProject(dir string, in ProjectInput) error {
 		raw, err = sjson.SetBytes(raw, p, v)
 	}
 	set("project", in.Project)
-	set("hooks.notification.message", in.NotificationMsg)
-	set("hooks.stop.message", in.StopMsg)
-	set("tts.enabled", in.TTSEnabled)
-	set("desktop.enabled", in.DesktopEnabled)
+	if in.NotificationMsg != nil {
+		set("hooks.notification.message", *in.NotificationMsg)
+	}
+	if in.StopMsg != nil {
+		set("hooks.stop.message", *in.StopMsg)
+	}
+	if in.TTSEnabled != nil {
+		set("tts.enabled", *in.TTSEnabled)
+	}
+	if in.DesktopEnabled != nil {
+		set("desktop.enabled", *in.DesktopEnabled)
+	}
 	if err != nil {
 		return err
 	}
