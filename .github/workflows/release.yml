@@ -5,12 +5,15 @@ on:
     tags:
       - 'v*'
 
+# Least-privilege by default; each job widens only what it needs.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the GitHub release and upload assets
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,13 +37,21 @@ jobs:
     # postinstall download can find the matching binaries.
     needs: goreleaser
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # required for npm trusted publishing (OIDC) — no NPM_TOKEN
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing requires npm >= 11.5.1; upgrade to be independent of
+      # whatever npm Node ships with.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
 
       - name: Resolve version and npm dist-tag
         id: ver
@@ -58,7 +69,7 @@ jobs:
       - name: Set version from tag
         run: npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version --allow-same-version
 
+      # Auth comes from the OIDC token (id-token: write above); npm also
+      # generates provenance automatically for public repo + public package.
       - name: Publish to npm
         run: npm publish --tag "${{ steps.ver.outputs.npmtag }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
