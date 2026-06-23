@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/tidwall/gjson"
 	"github.com/tidwall/pretty"
 	"github.com/tidwall/sjson"
 )
@@ -146,19 +147,43 @@ func Load(cwd string) Config {
 	return c
 }
 
+// LoadForInherit resolves the config layers that an "inherit" choice in
+// `cvox init` would fall back to — i.e. everything ABOVE the file init is about
+// to write. For a project init that's defaults → ~/.cvox.json (the project
+// .cvox.json is the file being written, so it's excluded). For --global it's
+// just the defaults (the ~/.cvox.json being written is itself the global layer).
+// This is what the "Inherit (X)" prompt label must reflect, not Load — Load
+// includes the very file init is overwriting, which would show a stale value.
+func LoadForInherit(global bool) Config {
+	c := defaults()
+	if !global {
+		if home, err := os.UserHomeDir(); err == nil {
+			apply(&c, readPartial(filepath.Join(home, ".cvox.json")))
+		}
+	}
+	return c
+}
+
 // ProjectInput is what WriteProject persists into a .cvox.json.
+// Nil fields mean "inherit" — they are not written to the file.
 type ProjectInput struct {
 	Project         string
-	NotificationMsg string
-	StopMsg         string
-	TTSEnabled      bool
-	DesktopEnabled  bool
+	NotificationMsg *string
+	StopMsg         *string
+	TTSEnabled      *bool
+	DesktopEnabled  *bool
 }
 
 // WriteProject writes (or updates) dir/.cvox.json with the given values. It sets
 // only the specific leaf fields onto any existing file content — preserving
 // unknown keys and key order, matching the TS deep-merge-onto-existing — then
 // pretty-prints with 2-space indentation and a trailing newline.
+//
+// Nil fields in ProjectInput mean "inherit": any existing value for that field
+// is deleted so it falls back to the parent layers (defaults → ~/.cvox.json),
+// rather than being left behind. Parent objects that become empty as a result
+// (hooks.notification, hooks.stop, hooks, tts, desktop) are pruned so re-running
+// init with "Inherit" leaves a clean file instead of empty `{}` husks.
 //
 // Note the written shape deliberately omits hooks.*.enabled (the messages are
 // the only per-event field init writes), mirroring the original.
@@ -177,11 +202,53 @@ func WriteProject(dir string, in ProjectInput) error {
 		}
 		raw, err = sjson.SetBytes(raw, p, v)
 	}
+	// del removes a leaf; non-existent paths are a no-op (sjson returns the
+	// input unchanged), so it is safe to call unconditionally for nil fields.
+	del := func(p string) {
+		if err != nil {
+			return
+		}
+		raw, err = sjson.DeleteBytes(raw, p)
+	}
+	// pruneIfEmpty deletes p only when it holds an empty object, so we don't
+	// disturb unknown sibling keys the user may have added.
+	pruneIfEmpty := func(p string) {
+		if err != nil {
+			return
+		}
+		res := gjson.GetBytes(raw, p)
+		if res.Exists() && res.IsObject() && len(res.Map()) == 0 {
+			raw, err = sjson.DeleteBytes(raw, p)
+		}
+	}
+
 	set("project", in.Project)
-	set("hooks.notification.message", in.NotificationMsg)
-	set("hooks.stop.message", in.StopMsg)
-	set("tts.enabled", in.TTSEnabled)
-	set("desktop.enabled", in.DesktopEnabled)
+	if in.NotificationMsg != nil {
+		set("hooks.notification.message", *in.NotificationMsg)
+	} else {
+		del("hooks.notification.message")
+	}
+	if in.StopMsg != nil {
+		set("hooks.stop.message", *in.StopMsg)
+	} else {
+		del("hooks.stop.message")
+	}
+	if in.TTSEnabled != nil {
+		set("tts.enabled", *in.TTSEnabled)
+	} else {
+		del("tts.enabled")
+	}
+	if in.DesktopEnabled != nil {
+		set("desktop.enabled", *in.DesktopEnabled)
+	} else {
+		del("desktop.enabled")
+	}
+	// Prune containers emptied by the deletions above (children before parent).
+	pruneIfEmpty("hooks.notification")
+	pruneIfEmpty("hooks.stop")
+	pruneIfEmpty("hooks")
+	pruneIfEmpty("tts")
+	pruneIfEmpty("desktop")
 	if err != nil {
 		return err
 	}
