@@ -9,13 +9,13 @@ cvox (Claude Voice Notifications) — 一个 Go CLI 工具，通过 Claude Code 
 ## 构建
 
 ```bash
-make build    # 编译到当前目录（生成 cvox 二进制）
+make build    # 编译到 bin/cvox-bin（与 npm 安装路径一致）
 make install  # 安装到 ~/go/bin（本地开发用，使用当前工作目录代码）
 make test     # 运行所有测试
 make clean    # 清理编译产物
 
 # 或者直接使用 go 命令
-go build -o cvox .          # 编译二进制
+go build -o bin/cvox-bin .   # 编译二进制
 go test ./...               # 运行所有测试
 bash test.sh                # 冒烟测试 notify 命令
 ```

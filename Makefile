@@ -8,9 +8,9 @@ install:
 install-latest:
 	go install .@latest
 
-# 编译到当前目录
+# 编译到 bin/cvox-bin（与 npm 安装路径一致）
 build:
-	go build -o cvox .
+	go build -o bin/cvox-bin .
 
 # 运行测试
 test:
@@ -18,4 +18,4 @@ test:
 
 # 清理
 clean:
-	rm -f cvox
+	rm -f bin/cvox-bin

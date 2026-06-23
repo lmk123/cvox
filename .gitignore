@@ -4,7 +4,6 @@
 /.idea
 
 # Go build output
-/cvox
 /dist
 
 # npm-fetched / locally-built Go binary (bin/cvox.cjs launcher IS tracked)
