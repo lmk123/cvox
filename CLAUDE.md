@@ -1,17 +1,23 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+此文件为 Claude Code (claude.ai/code) 在此代码库中工作时提供指导。
 
-## Project
+## 项目
 
-cvox (Claude Voice Notifications) — a Go CLI tool that provides voice alerts and desktop notifications for Claude Code via the hooks system. When a permission prompt appears or a task completes, cvox speaks and/or pops up a desktop notification.
+cvox (Claude Voice Notifications) — 一个 Go CLI 工具，通过 Claude Code hooks 系统提供语音提醒和桌面通知。当出现权限提示或任务完成时，cvox 会语音播报和/或弹出桌面通知。
 
-## Build
+## 构建
 
 ```bash
-go build -o cvox .          # Build the binary
-go test ./...               # Run all tests
-bash test.sh                # Smoke test the notify command
+make build    # 编译到当前目录（生成 cvox 二进制）
+make install  # 安装到 ~/go/bin（本地开发用，使用当前工作目录代码）
+make test     # 运行所有测试
+make clean    # 清理编译产物
+
+# 或者直接使用 go 命令
+go build -o cvox .          # 编译二进制
+go test ./...               # 运行所有测试
+bash test.sh                # 冒烟测试 notify 命令
 ```
 
 ## Hook 探针（调试工具）
@@ -30,46 +36,46 @@ node scripts/probe-toggle.cjs status           # 查看当前装了几个探针 
 - `probe.log` / `probe-full.log` 已加入 `.gitignore`。
 - ⚠️ **改完 settings 需重启 Claude Desktop / 新开会话才生效**；在 agent 的 Bash 沙箱里跑 install 会 EPERM（settings.local.json 受保护），需在普通终端执行。
 
-## Architecture
+## 架构
 
-CLI is a single Go binary with three core commands:
+CLI 是单个 Go 二进制，有三个核心命令：
 
-- `cvox init [--global]` — Injects hooks into the global `~/.claude/settings.json` (always global, see key design below), interactively selects language and notification method; `--global` only decides where `.cvox.json` is written (home directory vs project root)
-- `cvox notify` — Called by hooks, reads stdin JSON event and triggers TTS voice and/or desktop notification
-- `cvox remove [--global]` — By default only deletes the project `.cvox.json` to silence this project (hooks remain global); `--global` fully uninstalls (deletes global hooks + `~/.cvox.json`)
+- `cvox init [--global]` — 将 hooks 注入到全局 `~/.claude/settings.json`（始终是全局的，见关键设计），交互式选择语言和通知方式；`--global` 仅决定 `.cvox.json` 的写入位置（家目录 vs 项目根目录）
+- `cvox notify` — 由 hooks 调用，读取 stdin JSON 事件并触发 TTS 语音和/或桌面通知
+- `cvox remove [--global]` — 默认删除项目的 `.cvox.json`；如果用户用的是项目级 `cvox init`（无全局配置），这会让项目静音；如果用户用的是 `cvox init --global`（有全局 `~/.cvox.json`），删除项目配置不会让项目静音（全局配置仍生效）。`--global` 完全卸载（删除全局 hooks + `~/.cvox.json`）
 
-### Source structure
+### 源码结构
 
-- `main.go` — CLI entry point: subcommand dispatch and --version
-- `internal/cli/` — Command implementations
-  - `init.go` — Hook installation logic: hooks always written to global `~/.claude/settings.json`, deep merge to avoid overwriting existing config; `--global` only determines `.cvox.json` location (home vs project root); lazy cleanup of legacy project-level `settings.local.json` hooks; interactive selection of notification method (voice/desktop/both)
-  - `notify.go` — Event handling, TTS invocation, desktop notification invocation; includes built-in mute list `MUTED_NOTIFICATION_TOOLS` (see key design below). opt-in is implemented via config defaults, `notify` itself contains no "file exists" check
-  - `remove.go` — Removal logic: default (project-level) deletes project `.cvox.json` + cleans up legacy project cvox hooks, does not touch global hooks; `--global` deletes global hooks + `~/.cvox.json`
-- `internal/hooks/` — Hook definitions (`hooks.go`): permission prompt only mounts PermissionRequest (matcher `""`) — both CLI and Desktop permission dialogs trigger PermissionRequest; CLI additionally triggers Notification (matcher `permission_prompt`) which Desktop does not, so it's been dropped to avoid CLI double-speak; stop corresponds to task completion
-- `internal/config/` — Three-layer config merging (`config.go`): defaults → `~/.cvox.json` → project `.cvox.json`; `tts.enabled`/`desktop.enabled` default to `false` (see key design "opt-in via defaults")
-- `internal/settings/` — Claude settings.json read/write (`settings.go`): `Read` distinguishes "file missing" (ENOENT → returns `{}`, normal first-run) vs "file exists but unreadable/JSON corrupt/root not object" (throws `SettingsParseError`, never returns `{}`) — this prevents "empty object overwriting user config" at the source; `Write` is atomic (write `.tmp` then `rename`) to prevent half-corrupted files (see key design "never overwrite corrupt settings.json")
-- `internal/notify/` — Platform-specific notification implementations
-  - `tts.go` — TTS engine detection and command building (`say`/`espeak`/SAPI PowerShell)
-  - `desktop.go` — Desktop notification command building (`osascript`/`notify-send`/PowerShell NotifyIcon)
-  - `mute.go` — Built-in mute list for the notification path (`MUTED_NOTIFICATION_TOOLS`), glob pattern matching (only `*` special, `!` prefix negates, last match wins)
-  - `notify.go` — Event processing orchestration: stdin read, event mapping, mute check, concurrent dispatch of voice+desktop notifications
+- `main.go` — CLI 入口：子命令分发和 --version
+- `internal/cli/` — 命令实现
+  - `init.go` — Hook 安装逻辑：hooks 始终写入全局 `~/.claude/settings.json`，深度合并以避免覆盖已有配置；`--global` 仅决定 `.cvox.json` 位置（家目录 vs 项目根目录）；懒清理旧的项目级 `settings.local.json` hooks；交互式选择通知方式（语音/桌面/两者）
+  - `notify.go` — 事件处理、TTS 调用、桌面通知调用；包含内置静音名单 `MUTED_NOTIFICATION_TOOLS`（见关键设计）。opt-in 通过配置默认值实现，`notify` 本身不包含"文件存在"检查
+  - `remove.go` — 移除逻辑：默认删除项目 `.cvox.json` + 清理旧的项目 cvox hooks，不触碰全局 hooks；`--global` 删除全局 hooks + `~/.cvox.json`
+- `internal/hooks/` — Hook 定义（`hooks.go`）：权限提示只挂载 PermissionRequest（matcher `""`）— CLI 和 Desktop 权限对话框都触发 PermissionRequest；CLI 额外触发 Notification（matcher `permission_prompt`）而 Desktop 不触发，所以已弃用以避免 CLI 双响；stop 对应任务完成
+- `internal/config/` — 三层配置合并（`config.go`）：默认值 → `~/.cvox.json` → 项目 `.cvox.json`；`tts.enabled`/`desktop.enabled` 默认为 `false`（见关键设计"通过默认值 opt-in"）
+- `internal/settings/` — Claude settings.json 读写（`settings.go`）：`Read` 区分"文件缺失"（ENOENT → 返回 `{}`，正常首次运行）vs"文件存在但不可读/JSON 损坏/根不是对象"（抛出 `SettingsParseError`，从不返回 `{}`）— 这防止"空对象覆盖用户配置"；`Write` 是原子的（写 `.tmp` 然后 `rename`）以防止半损坏文件（见关键设计"永不覆盖损坏的 settings.json"）
+- `internal/notify/` — 平台特定的通知实现
+  - `tts.go` — TTS 引擎检测和命令构建（`say`/`espeak`/SAPI PowerShell）
+  - `desktop.go` — 桌面通知命令构建（`osascript`/`notify-send`/PowerShell NotifyIcon）
+  - `mute.go` — 通知路径的内置静音名单（`MUTED_NOTIFICATION_TOOLS`），glob 模式匹配（仅 `*` 特殊，`!` 前缀否定，后匹配项胜出）
+  - `notify.go` — 事件处理编排：stdin 读取、事件映射、静音检查、语音+桌面通知的并发分发
 
-### Key design decisions
+### 关键设计决策
 
-- **Hooks are always global**: Hooks are always written to `~/.claude/settings.json` (machine-level), not the project's `.claude/settings.local.json`. Reason: `settings.local.json` is git-ignored, and `git worktree` only checks out tracked files, so hooks written there would be lost in new worktrees. Global installation once covers all projects and all worktrees; "which project speaks" is controlled by the committed `.cvox.json` (which travels with worktrees). `init` lazily cleans up legacy project-level hooks to avoid "global + local" double-speak in the main checkout.
-- **Never overwrite corrupt settings.json**: After upgrading hooks to global installation, the write target changed from project-level `settings.local.json` to machine-level shared `~/.claude/settings.json` (which contains the user's permissions/env/model/other hooks). All write paths do `Read` then `Write` as a whole, so if `Read` swallowed "file exists but JSON corrupt" as `{}`, it would overwrite the user's entire global config with an object containing only cvox hooks. Defense: `Read` only returns `{}` for ENOENT; corrupt/unreadable/non-object root all throw `SettingsParseError`. Commands catch this — `init` reads global settings **before** interactive prompts, and on corruption prints the path + message and exits with code 1 (no interaction, no write); `remove --global` aborts on corruption too. Project-level `settings.local.json` lazy cleanup is best-effort: corruption only skips + warns, doesn't block the main flow. Combined with atomic `Write`, this ensures the user's settings.json is never damaged.
-- **Opt-in via defaults**: `DEFAULT_CONFIG` has `tts.enabled`/`desktop.enabled` both default to `false`. A project with no `.cvox.json` merges down to both false, and the early returns in `speak`/`desktopNotify` (via `dispatch`) → silence. `init` always explicitly writes `tts.enabled` (Voice/Both=true, Desktop only=false), so projects that have run `init` speak normally. Note: a hand-written, existing but `tts`-less minimal `.cvox.json` will be silent (no write = no sound).
-- **Cross-platform TTS**: macOS `say` / Linux `espeak` / Windows SAPI via PowerShell
-- **Cross-platform desktop notifications**: macOS `osascript` / Linux `notify-send` / Windows PowerShell NotifyIcon
-- **Config messages support `{project}` placeholder**
-- **Built-in mute list** (`mute.go`): The `PermissionRequest` hook fires when a tool "enters the permission flow", before the actual dialog appears. Claude Desktop's Preview tools are auto-approved and never show a dialog, but the hook still fires, causing spurious voice. The hook input has no field to distinguish "real confirmation vs auto-approval" (only `tool_name`/`tool_input`/`permission_suggestions`, and `permission_suggestions` presence/absence doesn't correlate with dialog appearance, and can even be inverted), so we mute by `tool_name` matching a list. Syntax: single array, only `*` wildcard, `!` prefix negates, later items override earlier ones (mirrors Claude Code permission rules). Currently covers `mcp__Claude_Preview__*` with negation for `!mcp__Claude_Preview__preview_start` (that tool does show a confirmation dialog in Claude Desktop and was incorrectly silenced by the wildcard). If other Preview tools also show dialogs, add `"!mcp__Claude_Preview__preview_xxx"` to allow them. Only affects the notification (permission) path, not stop. User-transparent, not exposed as a config option.
-- **Hook installation uses marker substring for idempotency**
-- **Go-specific**: The settings read/write uses `github.com/tidwall/gjson`/`sjson`/`pretty` to preserve the user's settings.json key order and unknown fields byte-for-byte, only editing the `hooks` key. This avoids the standard library `map[string]any` behavior of reordering keys alphabetically on JSON serialization, which would produce noisy diffs.
+- **Hooks 始终是全局的**：Hooks 始终写入 `~/.claude/settings.json`（机器级别），而不是项目的 `.claude/settings.local.json`。原因：`settings.local.json` 被 git 忽略，而 `git worktree` 只检出跟踪的文件，所以写入那里的 hooks 会在新 worktree 中丢失。全局安装一次即可覆盖所有项目和所有 worktree；"哪个项目说话"由提交的 `.cvox.json` 控制（它会随 worktree 一起移动）。`init` 懒清理旧的项目级 hooks 以避免主检出中的"全局 + 本地"双响。
+- **永不覆盖损坏的 settings.json**：升级 hooks 到全局安装后，写入目标从项目级 `settings.local.json` 改为机器级共享的 `~/.claude/settings.json`（包含用户的权限/环境/模型/其他 hooks）。所有写入路径都先 `Read` 再整体 `Write`，所以如果 `Read` 把"文件存在但 JSON 损坏"吞成 `{}`，就会用只包含 cvox hooks 的对象覆盖用户的整个全局配置。防御：`Read` 只对 ENOENT 返回 `{}`；损坏/不可读/根不是对象都抛出 `SettingsParseError`。命令捕获此错误 — `init` 在交互提示前读取全局设置，损坏时打印路径 + 消息并以退出码 1 退出（不交互，不写入）；`remove --global` 在损坏时也中止。项目级 `settings.local.json` 懒清理是尽力而为：损坏只跳过 + 警告，不阻塞主流程。结合原子 `Write`，确保用户的 settings.json 永不被损坏。
+- **通过默认值 opt-in**：`DEFAULT_CONFIG` 中 `tts.enabled`/`desktop.enabled` 都默认为 `false`。没有 `.cvox.json` 的项目合并后两者都为 false，`speak`/`desktopNotify` 中的早期返回（通过 `dispatch`）→ 静音。`init` 始终显式写入 `tts.enabled`（Voice/Both=true，Desktop only=false），所以运行过 `init` 的项目正常说话。注意：手写的、存在但缺少 `tts` 的最小 `.cvox.json` 会静音（无写入 = 无声音）。
+- **跨平台 TTS**：macOS `say` / Linux `espeak` / Windows SAPI via PowerShell
+- **跨平台桌面通知**：macOS `osascript` / Linux `notify-send` / Windows PowerShell NotifyIcon
+- **配置消息支持 `{project}` 占位符**
+- **内置静音名单**（`mute.go`）：`PermissionRequest` hook 在工具"进入权限流程"时触发，早于实际对话框出现。Claude Desktop 的 Preview 工具会被自动批准、从不显示对话框，但 hook 仍然触发，导致多余语音。hook 输入没有字段能区分"真实确认 vs 自动批准"（只有 `tool_name`/`tool_input`/`permission_suggestions`，且 `permission_suggestions` 存在与否与对话框出现不相关，甚至会反转），所以通过 `tool_name` 匹配名单静音。语法：单数组，仅 `*` 通配符，`!` 前缀否定，后项覆盖前项（镜像 Claude Code 权限规则）。当前覆盖 `mcp__Claude_Preview__*` 并否定 `!mcp__Claude_Preview__preview_start`（该工具在 Claude Desktop 确实显示确认对话框，被通配符错误静音）。如果其他 Preview 工具也显示对话框，添加 `"!mcp__Claude_Preview__preview_xxx"` 允许它们。仅影响通知（权限）路径，不影响 stop。对用户透明，不暴露为配置选项。
+- **Hook 安装使用 marker 子字符串实现幂等性**
+- **Go 特定**：settings 读写使用 `github.com/tidwall/gjson`/`sjson`/`pretty` 来逐字节保留用户的 settings.json 键顺序和未知字段，只编辑 `hooks` 键。这避免了标准库 `map[string]any` 在 JSON 序列化时按字母顺序重排键的行为，这会产生嘈杂的 diff。
 
-### Language convention
+### 语言规范
 
-User-facing content (CLI output, help text, README.md) is in English.
+用户可见内容（CLI 输出、help 文本、README.md）使用英文。
 
-### Workflow convention
+### 工作流规范
 
-After modifying code, confirm whether CLAUDE.md and README.md need updates.
+修改代码后，确认 CLAUDE.md 和 README.md 是否需要更新。
