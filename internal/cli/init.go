@@ -56,6 +56,13 @@ func Init(args []string) error {
 		return err
 	}
 	defaultName := filepath.Base(cwd)
+	if *global {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		defaultName = filepath.Base(home)
+	}
 
 	// Read the global settings up front (before prompting) so a corrupt
 	// ~/.claude/settings.json aborts immediately rather than after the user has
