@@ -51,6 +51,65 @@ func ptr(b bool) *bool {
 	return &b
 }
 
+// boolPtrEqual returns true if both pointers are nil or both point to the same value.
+func boolPtrEqual(a, b *bool) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+// defaultLocaleKey returns the key of the locale option that matches the
+// existing notification message. Returns "1" (English) if no match is found.
+func defaultLocaleKey(p *config.Partial) string {
+	if p == nil || p.Hooks == nil || p.Hooks.Notification == nil || p.Hooks.Notification.Message == nil {
+		return "1" // default to English
+	}
+
+	msg := *p.Hooks.Notification.Message
+	for _, opt := range localeOptions {
+		if opt.code == "" {
+			continue // skip Inherit
+		}
+		if messages, ok := config.Locales[opt.code]; ok && msg == messages.Notification {
+			return opt.key
+		}
+	}
+	return "1" // default to English if no match
+}
+
+// defaultMethodKey returns the key of the notify method option that matches
+// the existing tts/desktop flags. Returns "1" (Voice only) if no match is found.
+func defaultMethodKey(p *config.Partial) string {
+	if p == nil {
+		return "1" // default to Voice only
+	}
+
+	var tts, desktop *bool
+	if p.TTS != nil {
+		tts = p.TTS.Enabled
+	}
+	if p.Desktop != nil {
+		desktop = p.Desktop.Enabled
+	}
+
+	// If both fields are missing (nil), treat as default (Voice only)
+	// rather than matching the Inherit option (which also has both nil).
+	if tts == nil && desktop == nil {
+		return "1"
+	}
+
+	for _, opt := range notifyMethodOptions {
+		if boolPtrEqual(tts, opt.tts) && boolPtrEqual(desktop, opt.desktop) {
+			return opt.key
+		}
+	}
+	return "1" // default to Voice only if no match
+}
+
 // defaultProjectName picks the default project name shown in the init prompt.
 // For --global the config and hooks live in the home directory, so the name
 // should match the home dir's base (typically the username) rather than the
@@ -85,6 +144,13 @@ func Init(args []string) error {
 	}
 	defaultName := defaultProjectName(cwd, home, *global)
 
+	// Calculate configDir early so we can read the target .cvox.json
+	// to determine default prompt values.
+	configDir := cwd
+	if *global {
+		configDir = home
+	}
+
 	// Read the global settings up front (before prompting) so a corrupt
 	// ~/.claude/settings.json aborts immediately rather than after the user has
 	// answered every question. Crucially we NEVER write on a parse error — that
@@ -102,6 +168,10 @@ func Init(args []string) error {
 		}
 		return err
 	}
+
+	// Read the target .cvox.json to determine default prompt values.
+	configPath := filepath.Join(configDir, ".cvox.json")
+	existingConfig := config.ReadPartial(configPath)
 
 	// Interactive prompts.
 	r := bufio.NewReader(os.Stdin)
@@ -139,10 +209,13 @@ func Init(args []string) error {
 		}
 	}
 
+	// Determine the default option from existing config.
+	defaultLocaleKey := defaultLocaleKey(existingConfig)
+
 	fmt.Println("Voice language:")
 	for _, opt := range localeOptions {
 		defaultMark := ""
-		if opt.key == "1" {
+		if opt.key == defaultLocaleKey {
 			defaultMark = " (default)"
 		}
 		label := opt.label
@@ -151,7 +224,7 @@ func Init(args []string) error {
 		}
 		fmt.Printf("  %s. %s%s\n", opt.key, label, defaultMark)
 	}
-	fmt.Print("Select language [1]: ")
+	fmt.Printf("Select language [%s]: ", defaultLocaleKey)
 	localeAnswer, _ := r.ReadString('\n')
 	selected := localeOptions[0]
 	for _, opt := range localeOptions {
@@ -175,10 +248,13 @@ func Init(args []string) error {
 		inheritedMethodLabel = "Voice only"
 	}
 
+	// Determine the default option from existing config.
+	defaultMethodKey := defaultMethodKey(existingConfig)
+
 	fmt.Println("Notification method:")
 	for _, opt := range notifyMethodOptions {
 		defaultMark := ""
-		if opt.key == "1" {
+		if opt.key == defaultMethodKey {
 			defaultMark = " (default)"
 		}
 		label := opt.label
@@ -187,7 +263,7 @@ func Init(args []string) error {
 		}
 		fmt.Printf("  %s. %s%s\n", opt.key, label, defaultMark)
 	}
-	fmt.Print("Select method [1]: ")
+	fmt.Printf("Select method [%s]: ", defaultMethodKey)
 	methodAnswer, _ := r.ReadString('\n')
 	selectedMethod := notifyMethodOptions[0]
 	for _, opt := range notifyMethodOptions {
@@ -235,14 +311,6 @@ func Init(args []string) error {
 		} else {
 			return err
 		}
-	}
-
-	// Generate .cvox.json. --global writes to the home directory (all projects
-	// speak), otherwise to the project root (only this project speaks, and it
-	// travels with worktrees because .cvox.json is committed).
-	configDir := cwd
-	if *global {
-		configDir = home
 	}
 
 	// Convert selected values to pointers for ProjectInput.

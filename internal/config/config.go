@@ -75,14 +75,30 @@ type partial struct {
 	Desktop *partialToggle `json:"desktop"`
 }
 
+// Partial mirrors the on-disk .cvox.json schema with pointer fields.
+// Exported for use by cli package to read existing config for default values.
+type Partial = partial
+
+// PartialHooks is the exported version of the nested Hooks struct in partial.
+type PartialHooks = struct {
+	Notification *PartialEvent `json:"notification"`
+	Stop         *PartialEvent `json:"stop"`
+}
+
 type partialEvent struct {
 	Enabled *bool   `json:"enabled"`
 	Message *string `json:"message"`
 }
 
+// PartialEvent is the exported version of partialEvent.
+type PartialEvent = partialEvent
+
 type partialToggle struct {
 	Enabled *bool `json:"enabled"`
 }
+
+// PartialToggle is the exported version of partialToggle.
+type PartialToggle = partialToggle
 
 // readPartial reads and parses a .cvox.json layer. Like the TS tryReadJson it is
 // lenient: a missing or unparseable file yields nil (no error), so a corrupt
@@ -97,6 +113,12 @@ func readPartial(path string) *partial {
 		return nil
 	}
 	return &p
+}
+
+// ReadPartial reads and parses a .cvox.json layer, returning a Partial.
+// It is lenient: a missing or unparseable file yields nil.
+func ReadPartial(path string) *Partial {
+	return readPartial(path)
 }
 
 func applyEvent(dst *HookEvent, src *partialEvent) {
