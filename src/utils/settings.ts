@@ -12,13 +12,54 @@ export function getSettingsPath(global: boolean, cwd?: string): string {
   return path.join(cwd || process.cwd(), ".claude", "settings.local.json");
 }
 
-export function readSettings(filePath: string): Record<string, any> {
-  try {
-    const content = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return {};
+/**
+ * Thrown when a settings file exists but cannot be safely read or parsed.
+ * Callers MUST treat this as "do not write" — overwriting would clobber a
+ * config we failed to understand (e.g. a hand-edited ~/.claude/settings.json
+ * with a syntax error would lose all the user's unrelated Claude config).
+ */
+export class SettingsParseError extends Error {
+  constructor(public readonly filePath: string, public readonly cause: unknown) {
+    super(
+      `Failed to read settings at ${filePath}: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`
+    );
+    this.name = "SettingsParseError";
   }
+}
+
+/**
+ * Read a settings JSON file.
+ *
+ * A missing file is the normal first-run case and yields `{}`. But a file that
+ * EXISTS yet cannot be read or JSON-parsed throws {@link SettingsParseError}
+ * instead of silently returning `{}` — otherwise the caller's subsequent
+ * writeSettings would overwrite (and destroy) a config we never understood.
+ */
+export function readSettings(filePath: string): Record<string, any> {
+  let content: string;
+  try {
+    content = fs.readFileSync(filePath, "utf-8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      return {}; // File doesn't exist yet — safe to start fresh.
+    }
+    throw new SettingsParseError(filePath, err); // Exists but unreadable.
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (err) {
+    throw new SettingsParseError(filePath, err);
+  }
+  // A settings file must be a JSON object; anything else (array, string, null)
+  // is not a shape we can safely merge into and write back.
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new SettingsParseError(filePath, new Error("settings root is not a JSON object"));
+  }
+  return parsed as Record<string, any>;
 }
 
 export function writeSettings(
@@ -27,7 +68,12 @@ export function writeSettings(
 ): void {
   const dir = path.dirname(filePath);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(settings, null, 2) + "\n");
+  // Write atomically: serialize to a temp file in the same dir, then rename
+  // over the target. A crash mid-write can't leave settings.json truncated /
+  // corrupted (which would in turn make the next readSettings throw).
+  const tmpPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2) + "\n");
+  fs.renameSync(tmpPath, filePath);
 }
 
 function isCvoxHook(hook: any): boolean {
