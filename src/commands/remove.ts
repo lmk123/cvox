@@ -4,7 +4,7 @@ import {
   writeSettings,
   removeHooks,
 } from "../utils/settings.js";
-import { removeProjectConfig } from "../utils/config.js";
+import { removeProjectConfig, loadConfig } from "../utils/config.js";
 import * as os from "os";
 
 export function removeCommand(options: { global?: boolean }): void {
@@ -41,7 +41,17 @@ export function removeCommand(options: { global?: boolean }): void {
   const configRemoved = removeProjectConfig(cwd);
   if (configRemoved) {
     console.log(`cvox: Config file removed → ${cwd}/.cvox.json`);
-    console.log("cvox: This project is now silent.");
+    // The project override is gone, but a global ~/.cvox.json may still turn
+    // notifications on (config merge order: defaults → ~/.cvox.json → project).
+    // Re-check the effective config so we don't falsely claim silence.
+    const effective = loadConfig(cwd);
+    if (effective.tts.enabled || effective.desktop.enabled) {
+      console.log(
+        "cvox: Note: ~/.cvox.json still enables notifications globally, so this project will keep notifying."
+      );
+    } else {
+      console.log("cvox: This project is now silent.");
+    }
   } else {
     console.log("cvox: No project .cvox.json found.");
   }
