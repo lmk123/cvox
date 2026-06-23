@@ -21,11 +21,19 @@ func main() {
 
 	switch os.Args[1] {
 	case "init":
-		cli.Init(os.Args[2:])
+		if err := cli.Init(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "cvox:", err)
+			os.Exit(1)
+		}
 	case "notify":
+		// notify is called by hooks; errors are logged to stderr by the
+		// implementation but we don't exit on failure (best-effort).
 		cli.Notify(os.Args[2:])
 	case "remove":
-		cli.Remove(os.Args[2:])
+		if err := cli.Remove(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "cvox:", err)
+			os.Exit(1)
+		}
 	case "-v", "--version", "version":
 		fmt.Println("cvox", version)
 	default:

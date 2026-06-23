@@ -114,8 +114,17 @@ func Write(path string, raw []byte) error {
 
 // escapeKey escapes sjson/gjson path metacharacters so an arbitrary JSON object
 // key (e.g. a user-defined event name) is treated as a literal path segment.
+// Escapes: \ . * ? # @ |
 func escapeKey(key string) string {
-	repl := strings.NewReplacer(`\`, `\\`, `.`, `\.`, `*`, `\*`, `?`, `\?`)
+	repl := strings.NewReplacer(
+		`\`, `\\`,
+		`.`, `\.`,
+		`*`, `\*`,
+		`?`, `\?`,
+		`#`, `\#`,
+		`@`, `\@`,
+		`|`, `\|`,
+	)
 	return repl.Replace(key)
 }
 

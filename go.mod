@@ -1,6 +1,6 @@
 module github.com/lmk123/cvox
 
-go 1.26.4
+go 1.23
 
 require (
 	github.com/tidwall/gjson v1.19.0

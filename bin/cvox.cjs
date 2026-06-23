@@ -40,8 +40,9 @@ if (result.error) {
   process.exit(1);
 }
 
-// Propagate the child's exit code; if it was killed by a signal, mimic the
-// conventional 128 + signal-number exit status.
+// Propagate the child's exit code. If the child was killed by a signal,
+// we exit with 1 (a common convention when the exact signal number isn't
+// available).
 if (result.signal) {
   process.exit(1);
 }

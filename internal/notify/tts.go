@@ -1,6 +1,7 @@
 package notify
 
 import (
+	"os"
 	"os/exec"
 	"runtime"
 )
@@ -26,10 +27,12 @@ func detectEngine() engine {
 	}
 }
 
-// sapiScript drives the Windows Speech API; the message arrives as $args[0].
+// sapiScript drives the Windows Speech API; the message arrives via the
+// CVOX_MSG environment variable. Using an env var instead of $args because
+// PowerShell's -Command does not bind subsequent arguments to $args.
 const sapiScript = `Add-Type -AssemblyName System.Speech; ` +
 	`$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; ` +
-	`$s.Speak($args[0])`
+	`$s.Speak($env:CVOX_MSG)`
 
 // speakCmd builds (but does not start) the TTS command for message, or nil if
 // the platform has no known engine.
@@ -40,7 +43,9 @@ func speakCmd(message string) *exec.Cmd {
 	case engineEspeak:
 		return exec.Command("espeak", message)
 	case engineSAPI:
-		return exec.Command("powershell", "-Command", sapiScript, message)
+		cmd := exec.Command("powershell", "-Command", sapiScript)
+		cmd.Env = append(os.Environ(), "CVOX_MSG="+message)
+		return cmd
 	default:
 		return nil
 	}

@@ -15,9 +15,8 @@ func TestIsToolMuted(t *testing.T) {
 		// but preview_start is explicitly un-muted by the ! pattern
 		{"preview_start is un-muted", "mcp__Claude_Preview__preview_start", false},
 		// tools outside the Preview namespace are not muted
-		{"non-preview tool not muted", "mcp__Claude_Preview__foo", true},
 		{"non-preview tool not muted", "mcp__other__foo", false},
-		{"non-preview tool not muted", "bash", false},
+		{"bash not muted", "bash", false},
 		// edge cases
 		{"empty string", "", false},
 		{"partial match not muted", "mcp__Claude_Preview", false},

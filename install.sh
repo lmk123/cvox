@@ -20,8 +20,25 @@ case "$ARCH" in
   *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
 
-# Latest version (can be overridden with CVOX_VERSION)
-VERSION="${CVOX_VERSION:-latest}"
+# Resolve the latest version from GitHub if CVOX_VERSION is not set.
+# GitHub's "latest" redirect is at /releases/latest/download/<asset>, not
+# /releases/download/latest/<asset>, so we must fetch the actual tag.
+if [ -z "${CVOX_VERSION:-}" ]; then
+  if command -v curl >/dev/null 2>&1; then
+    VERSION=$(curl -sS https://api.github.com/repos/lmk123/cvox/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//')
+  elif command -v wget >/dev/null 2>&1; then
+    VERSION=$(wget -qO- https://api.github.com/repos/lmk123/cvox/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//')
+  else
+    echo "Neither curl nor wget found. Please install one of them." >&2
+    exit 1
+  fi
+  if [ -z "$VERSION" ]; then
+    echo "Failed to fetch latest version from GitHub." >&2
+    exit 1
+  fi
+else
+  VERSION="$CVOX_VERSION"
+fi
 
 # Determine install directory
 if [ -d "$HOME/.local/bin" ]; then
@@ -33,7 +50,7 @@ else
   mkdir -p "$BINDIR"
 fi
 
-# Filename
+# Filename (no 'v' prefix - goreleaser strips it)
 if [ "$OS" = "windows" ]; then
   EXT=".zip"
 else
@@ -41,8 +58,9 @@ else
 fi
 FILE="cvox_${VERSION}_${OS}_${ARCH}${EXT}"
 
-# Download URL
-URL="https://github.com/lmk123/cvox/releases/download/${VERSION}/${FILE}"
+# Download URL (tag needs 'v' prefix)
+TAG="v${VERSION}"
+URL="https://github.com/lmk123/cvox/releases/download/${TAG}/${FILE}"
 
 echo "Downloading cvox ${VERSION} for ${OS}/${ARCH}..."
 echo "URL: $URL"
