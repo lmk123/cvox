@@ -45,7 +45,7 @@ export const DEFAULT_CONFIG: CvoxConfig = {
     },
   },
   tts: {
-    enabled: true,
+    enabled: false,
   },
   desktop: {
     enabled: false,
