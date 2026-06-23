@@ -98,6 +98,8 @@ func defaultMethodKey(p *config.Partial) string {
 
 	// If both fields are missing (nil), treat as default (Voice only)
 	// rather than matching the Inherit option (which also has both nil).
+	// Inherit is the last option in notifyMethodOptions, so "last match wins"
+	// would incorrectly select it if we didn't handle this case explicitly.
 	if tts == nil && desktop == nil {
 		return "1"
 	}
