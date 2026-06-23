@@ -144,13 +144,20 @@ func Init(args []string) error {
 			return fmt.Errorf("failed to get home directory: %w", err)
 		}
 	}
-	defaultName := defaultProjectName(cwd, home, *global)
 
 	// Calculate configDir early so we can read the target .cvox.json
 	// to determine default prompt values.
 	configDir := cwd
 	if *global {
 		configDir = home
+	}
+	configPath := filepath.Join(configDir, ".cvox.json")
+	existingConfig := config.ReadPartial(configPath)
+
+	defaultName := defaultProjectName(cwd, home, *global)
+	// If existing config has a project value, use it as the default.
+	if existingConfig != nil && existingConfig.Project != nil {
+		defaultName = *existingConfig.Project
 	}
 
 	// Read the global settings up front (before prompting) so a corrupt
@@ -170,10 +177,6 @@ func Init(args []string) error {
 		}
 		return err
 	}
-
-	// Read the target .cvox.json to determine default prompt values.
-	configPath := filepath.Join(configDir, ".cvox.json")
-	existingConfig := config.ReadPartial(configPath)
 
 	// Interactive prompts.
 	r := bufio.NewReader(os.Stdin)
@@ -228,11 +231,20 @@ func Init(args []string) error {
 	}
 	fmt.Printf("Select language [%s]: ", defaultLocaleKey)
 	localeAnswer, _ := r.ReadString('\n')
+	// Initialize with the default option, then override if user provides input.
 	selected := localeOptions[0]
 	for _, opt := range localeOptions {
-		if strings.TrimSpace(localeAnswer) == opt.key {
+		if opt.key == defaultLocaleKey {
 			selected = opt
 			break
+		}
+	}
+	if strings.TrimSpace(localeAnswer) != "" {
+		for _, opt := range localeOptions {
+			if strings.TrimSpace(localeAnswer) == opt.key {
+				selected = opt
+				break
+			}
 		}
 	}
 	// messages is only consumed when a concrete locale is chosen; for Inherit
@@ -267,11 +279,20 @@ func Init(args []string) error {
 	}
 	fmt.Printf("Select method [%s]: ", defaultMethodKey)
 	methodAnswer, _ := r.ReadString('\n')
+	// Initialize with the default option, then override if user provides input.
 	selectedMethod := notifyMethodOptions[0]
 	for _, opt := range notifyMethodOptions {
-		if strings.TrimSpace(methodAnswer) == opt.key {
+		if opt.key == defaultMethodKey {
 			selectedMethod = opt
 			break
+		}
+	}
+	if strings.TrimSpace(methodAnswer) != "" {
+		for _, opt := range notifyMethodOptions {
+			if strings.TrimSpace(methodAnswer) == opt.key {
+				selectedMethod = opt
+				break
+			}
 		}
 	}
 
