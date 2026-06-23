@@ -6,13 +6,13 @@ echo ""
 
 # Step 1: Build
 echo "Building..."
-npm run build --silent
+go build -o cvox .
 echo "Build OK"
 echo ""
 
 # Step 2: Test PermissionRequest event
 echo "--- Test: PermissionRequest event ---"
-if echo '{"hook_event_name":"PermissionRequest"}' | node dist/index.js notify; then
+if echo '{"hook_event_name":"PermissionRequest"}' | ./cvox notify; then
   echo "PASS"
 else
   echo "FAIL (exit code $?)"
@@ -21,7 +21,7 @@ echo ""
 
 # Step 3: Test Stop event
 echo "--- Test: Stop event ---"
-if echo '{"hook_event_name":"Stop"}' | node dist/index.js notify; then
+if echo '{"hook_event_name":"Stop"}' | ./cvox notify; then
   echo "PASS"
 else
   echo "FAIL (exit code $?)"
