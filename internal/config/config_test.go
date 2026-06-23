@@ -11,10 +11,9 @@ func TestLoadDefaults(t *testing.T) {
 	// No config files: defaults only, tts/desktop off, project from cwd.
 	tmpDir := t.TempDir()
 	// Mock home dir to avoid reading the user's actual ~/.cvox.json.
-	// Note: os.UserHomeDir() reads HOME on Unix and USERPROFILE on Windows,
-	// so this only isolates on Unix. Cross-platform isolation would require
-	// a more elaborate setup (e.g. testutil.Chdir + env override).
+	// os.UserHomeDir() reads HOME on Unix and USERPROFILE on Windows.
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 
 	cfg := Load(tmpDir)
 	if cfg.Project != filepath.Base(tmpDir) {
@@ -83,10 +82,9 @@ func TestLoadWithGlobalConfig(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	// Mock home dir by temporarily setting HOME to globalDir.
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", globalDir)
-	defer os.Setenv("HOME", oldHome)
+	// Mock home dir to point to globalDir.
+	t.Setenv("HOME", globalDir)
+	t.Setenv("USERPROFILE", globalDir)
 
 	cfg := Load(tmpDir)
 	if cfg.Project != filepath.Base(tmpDir) {
@@ -133,9 +131,9 @@ func TestLoadProjectOverridesGlobal(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", globalDir)
-	defer os.Setenv("HOME", oldHome)
+	// Mock home dir to point to globalDir.
+	t.Setenv("HOME", globalDir)
+	t.Setenv("USERPROFILE", globalDir)
 
 	cfg := Load(tmpDir)
 	if cfg.Project != "proj" {
