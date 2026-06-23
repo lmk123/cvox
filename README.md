@@ -9,7 +9,7 @@ Voice notifications for [Claude Code](https://claude.com/product/claude-code) **
 - Works with **both** the Claude Code CLI and the Claude Desktop app — one setup covers both
 - Cross-platform TTS: macOS (`say`), Linux (`espeak`), Windows (SAPI via PowerShell)
 - Cross-platform desktop notifications: macOS (`osascript`), Linux (`notify-send`), Windows (PowerShell NotifyIcon)
-- Interactive setup: choose language and notification method (voice, desktop, or both)
+- Interactive setup: choose language and notification method (voice, desktop, or both); each offers an "Inherit" option to fall back to the parent layer (defaults → `~/.cvox.json`)
 - Two hook events: permission prompt and task completion
 - Three-layer config merging: defaults → `~/.cvox.json` → project `.cvox.json`
 - Idempotent installation — safe to run multiple times
@@ -95,7 +95,7 @@ Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to
 | `tts.enabled` | boolean | `false` | Enable/disable TTS voice globally |
 | `desktop.enabled` | boolean | `false` | Enable/disable desktop notifications globally |
 
-Config files are merged with deep merge — you only need to specify the fields you want to override. Both `tts.enabled` and `desktop.enabled` default to `false`, so a project only speaks once a `.cvox.json` turns one of them on (which `cvox init` does for you).
+Config files are merged with deep merge — you only need to specify the fields you want to override. Both `tts.enabled` and `desktop.enabled` default to `false`, so a project only speaks once a `.cvox.json` turns one of them on (which `cvox init` does for you when you choose a concrete option). When running `cvox init`, both the language and notification method prompts offer an "Inherit" choice that omits the corresponding field from the `.cvox.json`, letting it fall back to the parent layer (defaults → `~/.cvox.json`).
 
 ## How It Works
 

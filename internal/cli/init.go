@@ -23,11 +23,11 @@ type localeOption struct {
 }
 
 var localeOptions = []localeOption{
-	{"1", "", "Inherit"},
-	{"2", "en", "English"},
-	{"3", "zh", "中文"},
-	{"4", "ja", "日本語"},
-	{"5", "ko", "한국어"},
+	{"1", "en", "English"},
+	{"2", "zh", "中文"},
+	{"3", "ja", "日本語"},
+	{"4", "ko", "한국어"},
+	{"5", "", "Inherit"},
 }
 
 // notifyMethodOption pairs a method key with its display label and the
@@ -40,10 +40,10 @@ type notifyMethodOption struct {
 }
 
 var notifyMethodOptions = []notifyMethodOption{
-	{"1", "Inherit", nil, nil},
-	{"2", "Voice only", ptr(true), ptr(false)},
-	{"3", "Desktop notification only", ptr(false), ptr(true)},
-	{"4", "Both voice and desktop", ptr(true), ptr(true)},
+	{"1", "Voice only", ptr(true), ptr(false)},
+	{"2", "Desktop notification only", ptr(false), ptr(true)},
+	{"3", "Both voice and desktop", ptr(true), ptr(true)},
+	{"4", "Inherit", nil, nil},
 }
 
 // ptr returns a pointer to b.
@@ -95,13 +95,17 @@ func Init(args []string) error {
 	}
 
 	// Question 2: language.
-	// Load existing config to show inherited value.
-	existingConfig := config.Load(cwd)
+	// Load the parent layers (everything above the file we're about to write) so
+	// the "Inherit (X)" label shows the value an inherit choice would fall back
+	// to — not the value in the file we're overwriting.
+	inheritConfig := config.LoadForInherit(*global)
 	inheritedLocale := "en" // default
-	if existingConfig.Hooks.Notification.Message != "" {
-		// Detect locale from the message (simple heuristic: match against known messages)
+	if inheritConfig.Hooks.Notification.Message != "" {
+		// Detect the inherited locale by matching its notification message
+		// against the built-in templates (best-effort: a hand-edited custom
+		// message won't match and falls back to English for display only).
 		for code, msgs := range config.Locales {
-			if existingConfig.Hooks.Notification.Message == msgs.Notification {
+			if inheritConfig.Hooks.Notification.Message == msgs.Notification {
 				inheritedLocale = code
 				break
 			}
@@ -136,23 +140,19 @@ func Init(args []string) error {
 			break
 		}
 	}
-	messages := config.Locales["en"] // default fallback
-	if selected.code != "" {
-		messages = config.Locales[selected.code]
-	} else {
-		// Inherit: use the inherited locale's messages
-		messages = config.Locales[inheritedLocale]
-	}
+	// messages is only consumed when a concrete locale is chosen; for Inherit
+	// (empty code) the message fields are left nil and never read.
+	messages := config.Locales[selected.code]
 
 	// Question 3: notification method.
-	// Show inherited method.
-	inheritedMethodLabel := "Voice only (default)"
-	if existingConfig.TTS.Enabled && existingConfig.Desktop.Enabled {
+	// Show the method an inherit choice would fall back to.
+	inheritedMethodLabel := "None (silent)"
+	if inheritConfig.TTS.Enabled && inheritConfig.Desktop.Enabled {
 		inheritedMethodLabel = "Both voice and desktop"
-	} else if existingConfig.Desktop.Enabled {
+	} else if inheritConfig.Desktop.Enabled {
 		inheritedMethodLabel = "Desktop notification only"
-	} else if !existingConfig.TTS.Enabled && !existingConfig.Desktop.Enabled {
-		inheritedMethodLabel = "None (silent)"
+	} else if inheritConfig.TTS.Enabled {
+		inheritedMethodLabel = "Voice only"
 	}
 
 	fmt.Println("Notification method:")

@@ -48,11 +48,11 @@ CLI 是单个 Go 二进制，有三个核心命令：
 
 - `main.go` — CLI 入口：子命令分发和 --version
 - `internal/cli/` — 命令实现
-  - `init.go` — Hook 安装逻辑：hooks 始终写入全局 `~/.claude/settings.json`，深度合并以避免覆盖已有配置；`--global` 仅决定 `.cvox.json` 位置（家目录 vs 项目根目录）；懒清理旧的项目级 `settings.local.json` hooks；交互式选择通知方式（语音/桌面/两者）
+  - `init.go` — Hook 安装逻辑：hooks 始终写入全局 `~/.claude/settings.json`，深度合并以避免覆盖已有配置；`--global` 仅决定 `.cvox.json` 位置（家目录 vs 项目根目录）；懒清理旧的项目级 `settings.local.json` hooks；交互式选择语言和通知方式（语音/桌面/两者）。两个提示都额外提供「Inherit」选项（列在末尾、非默认）：选中即不写入对应字段，回退到父层。提示里 `Inherit (X)` 的 X 由 `config.LoadForInherit(global)` 计算 —— 只看父层（非 global=默认值+`~/.cvox.json`，global=仅默认值），不含正要被覆盖的目标文件
   - `notify.go` — 事件处理、TTS 调用、桌面通知调用；包含内置静音名单 `MUTED_NOTIFICATION_TOOLS`（见关键设计）。opt-in 通过配置默认值实现，`notify` 本身不包含"文件存在"检查
   - `remove.go` — 移除逻辑：默认删除项目 `.cvox.json` + 清理旧的项目 cvox hooks，不触碰全局 hooks；`--global` 删除全局 hooks + `~/.cvox.json`
 - `internal/hooks/` — Hook 定义（`hooks.go`）：权限提示只挂载 PermissionRequest（matcher `""`）— CLI 和 Desktop 权限对话框都触发 PermissionRequest；CLI 额外触发 Notification（matcher `permission_prompt`）而 Desktop 不触发，所以已弃用以避免 CLI 双响；stop 对应任务完成
-- `internal/config/` — 三层配置合并（`config.go`）：默认值 → `~/.cvox.json` → 项目 `.cvox.json`；`tts.enabled`/`desktop.enabled` 默认为 `false`（见关键设计"通过默认值 opt-in"）
+- `internal/config/` — 三层配置合并（`config.go`）：默认值 → `~/.cvox.json` → 项目 `.cvox.json`；`tts.enabled`/`desktop.enabled` 默认为 `false`（见关键设计"通过默认值 opt-in"）。`Load` 合并全部三层；`LoadForInherit(global)` 只合并父层（非 global=默认值+`~/.cvox.json`，global=仅默认值），供 init 的「Inherit (X)」提示展示继承值用。`WriteProject` 的 `ProjectInput` 字段是指针类型，nil 表示「继承」—— 会删除已有 key 并清理空对象
 - `internal/settings/` — Claude settings.json 读写（`settings.go`）：`Read` 区分"文件缺失"（ENOENT → 返回 `{}`，正常首次运行）vs"文件存在但不可读/JSON 损坏/根不是对象"（抛出 `SettingsParseError`，从不返回 `{}`）— 这防止"空对象覆盖用户配置"；`Write` 是原子的（写 `.tmp` 然后 `rename`）以防止半损坏文件（见关键设计"永不覆盖损坏的 settings.json"）
 - `internal/notify/` — 平台特定的通知实现
   - `tts.go` — TTS 引擎检测和命令构建（`say`/`espeak`/SAPI PowerShell）
@@ -64,7 +64,7 @@ CLI 是单个 Go 二进制，有三个核心命令：
 
 - **Hooks 始终是全局的**：Hooks 始终写入 `~/.claude/settings.json`（机器级别），而不是项目的 `.claude/settings.local.json`。原因：`settings.local.json` 被 git 忽略，而 `git worktree` 只检出跟踪的文件，所以写入那里的 hooks 会在新 worktree 中丢失。全局安装一次即可覆盖所有项目和所有 worktree；"哪个项目说话"由提交的 `.cvox.json` 控制（它会随 worktree 一起移动）。`init` 懒清理旧的项目级 hooks 以避免主检出中的"全局 + 本地"双响。
 - **永不覆盖损坏的 settings.json**：升级 hooks 到全局安装后，写入目标从项目级 `settings.local.json` 改为机器级共享的 `~/.claude/settings.json`（包含用户的权限/环境/模型/其他 hooks）。所有写入路径都先 `Read` 再整体 `Write`，所以如果 `Read` 把"文件存在但 JSON 损坏"吞成 `{}`，就会用只包含 cvox hooks 的对象覆盖用户的整个全局配置。防御：`Read` 只对 ENOENT 返回 `{}`；损坏/不可读/根不是对象都抛出 `SettingsParseError`。命令捕获此错误 — `init` 在交互提示前读取全局设置，损坏时打印路径 + 消息并以退出码 1 退出（不交互，不写入）；`remove --global` 在损坏时也中止。项目级 `settings.local.json` 懒清理是尽力而为：损坏只跳过 + 警告，不阻塞主流程。结合原子 `Write`，确保用户的 settings.json 永不被损坏。
-- **通过默认值 opt-in**：`DEFAULT_CONFIG` 中 `tts.enabled`/`desktop.enabled` 都默认为 `false`。没有 `.cvox.json` 的项目合并后两者都为 false，`speak`/`desktopNotify` 中的早期返回（通过 `dispatch`）→ 静音。`init` 始终显式写入 `tts.enabled`（Voice/Both=true，Desktop only=false），所以运行过 `init` 的项目正常说话。注意：手写的、存在但缺少 `tts` 的最小 `.cvox.json` 会静音（无写入 = 无声音）。
+- **通过默认值 opt-in**：`DEFAULT_CONFIG` 中 `tts.enabled`/`desktop.enabled` 都默认为 `false`。没有 `.cvox.json` 的项目合并后两者都为 false，`speak`/`desktopNotify` 中的早期返回（通过 `dispatch`）→ 静音。`init` 的默认选项（English + Voice only）会显式写入 `tts.enabled: true`，所以一路回车的项目正常说话。`init` 另提供「Inherit」选项（非默认）：选中即不写入对应字段，回退到父层。`WriteProject` 的 `ProjectInput` 字段是指针类型（`*string`/`*bool`），nil 表示「继承」—— 此时 `WriteProject` 会删除文件中已有的该字段，并清理因删除而变空的父对象（`hooks.notification`/`hooks.stop`/`hooks`/`tts`/`desktop`），确保重跑 init 选 Inherit 能真正生效。注意：手写的、存在但缺少 `tts` 的最小 `.cvox.json` 会静音（无写入 = 无声音）。
 - **跨平台 TTS**：macOS `say` / Linux `espeak` / Windows SAPI via PowerShell
 - **跨平台桌面通知**：macOS `osascript` / Linux `notify-send` / Windows PowerShell NotifyIcon
 - **配置消息支持 `{project}` 占位符**

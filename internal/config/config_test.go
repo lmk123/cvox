@@ -10,10 +10,11 @@ import (
 func TestLoadDefaults(t *testing.T) {
 	// No config files: defaults only, tts/desktop off, project from cwd.
 	tmpDir := t.TempDir()
-	// Mock home dir to avoid reading the user's actual ~/.cvox.json
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	// Mock home dir to avoid reading the user's actual ~/.cvox.json.
+	// Note: os.UserHomeDir() reads HOME on Unix and USERPROFILE on Windows,
+	// so this only isolates on Unix. Cross-platform isolation would require
+	// a more elaborate setup (e.g. testutil.Chdir + env override).
+	t.Setenv("HOME", tmpDir)
 
 	cfg := Load(tmpDir)
 	if cfg.Project != filepath.Base(tmpDir) {
@@ -227,5 +228,47 @@ func TestWriteProjectInheritsNilFields(t *testing.T) {
 	}
 	if strings.Contains(contentStr, `"desktop"`) {
 		t.Error("WriteProject: desktop should not be written when nil")
+	}
+}
+
+func TestWriteProjectDeletesInheritedFields(t *testing.T) {
+	tmpDir := t.TempDir()
+	// Start with a full config.
+	notificationMsg := "old notification"
+	stopMsg := "old stop"
+	ttsEnabled := true
+	desktopEnabled := true
+	if err := WriteProject(tmpDir, ProjectInput{
+		Project:         "testproj",
+		NotificationMsg: &notificationMsg,
+		StopMsg:         &stopMsg,
+		TTSEnabled:      &ttsEnabled,
+		DesktopEnabled:  &desktopEnabled,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// Re-run with nil fields (inherit) → should delete the explicit values.
+	if err := WriteProject(tmpDir, ProjectInput{
+		Project: "testproj",
+		// All other fields nil → delete existing keys.
+	}); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(tmpDir, ".cvox.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contentStr := string(content)
+	if !strings.Contains(contentStr, `"project": "testproj"`) {
+		t.Error("WriteProject: project should remain")
+	}
+	if strings.Contains(contentStr, `"hooks"`) {
+		t.Error("WriteProject: hooks should be deleted when nil (empty parent pruned)")
+	}
+	if strings.Contains(contentStr, `"tts"`) {
+		t.Error("WriteProject: tts should be deleted when nil (empty parent pruned)")
+	}
+	if strings.Contains(contentStr, `"desktop"`) {
+		t.Error("WriteProject: desktop should be deleted when nil (empty parent pruned)")
 	}
 }
