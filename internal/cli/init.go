@@ -43,6 +43,17 @@ var notifyMethodOptions = []notifyMethodOption{
 	{"3", "Both voice and desktop", true, true},
 }
 
+// defaultProjectName picks the default project name shown in the init prompt.
+// For --global the config and hooks live in the home directory, so the name
+// should match the home dir's base (typically the username) rather than the
+// current directory.
+func defaultProjectName(cwd, home string, global bool) string {
+	if global {
+		return filepath.Base(home)
+	}
+	return filepath.Base(cwd)
+}
+
 // Init sets up cvox for the current project or globally.
 func Init(args []string) error {
 	fs := flag.NewFlagSet("init", flag.ExitOnError)
@@ -55,7 +66,16 @@ func Init(args []string) error {
 	if err != nil {
 		return err
 	}
-	defaultName := filepath.Base(cwd)
+	// For --global the config and hooks live in the home directory; resolve it
+	// once here so both the default project name and the .cvox.json location use it.
+	var home string
+	if *global {
+		home, err = os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+	}
+	defaultName := defaultProjectName(cwd, home, *global)
 
 	// Read the global settings up front (before prompting) so a corrupt
 	// ~/.claude/settings.json aborts immediately rather than after the user has
@@ -170,10 +190,6 @@ func Init(args []string) error {
 	// travels with worktrees because .cvox.json is committed).
 	configDir := cwd
 	if *global {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
 		configDir = home
 	}
 	if err := config.WriteProject(configDir, config.ProjectInput{
