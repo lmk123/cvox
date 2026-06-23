@@ -1,10 +1,8 @@
 # cvox
 
-[![npm version](https://img.shields.io/npm/v/cvox.svg)](https://www.npmjs.com/package/cvox)
-
 Voice notifications for [Claude Code](https://claude.com/product/claude-code) **and the [Claude Desktop](https://claude.ai/download) app**. Get spoken alerts or desktop notifications when Claude needs permission or finishes a task — so you can step away from the screen.
 
-**Upgrading from v1?** Bump to v2 (or later) and re-run `cvox init` to pick up Claude Desktop app support.
+**Upgrading from v2?** The v3 rewrite is a Go binary with no runtime dependencies. Run `cvox remove --global` to uninstall the old Node version, then follow the install steps below.
 
 ## Features
 
@@ -16,12 +14,16 @@ Voice notifications for [Claude Code](https://claude.com/product/claude-code) **
 - Three-layer config merging: defaults → `~/.cvox.json` → project `.cvox.json`
 - Idempotent installation — safe to run multiple times
 - `{project}` placeholder in messages, auto-detected from directory name
+- **No runtime dependencies** — single Go binary (~3 MB)
 
 ## Quick Start
 
 ```bash
-# Install globally
-npm install -g cvox
+# Install (macOS/Linux/Windows)
+curl -fsSL https://raw.githubusercontent.com/lmk123/cvox/main/install.sh | sh
+
+# Or download a binary from the Releases page:
+# https://github.com/lmk123/cvox/releases
 
 # Set up for your project (run inside the project directory)
 cvox init
