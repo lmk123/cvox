@@ -20,8 +20,7 @@ Voice notifications for [Claude Code](https://claude.com/product/claude-code) **
 
 ```bash
 # Install via npm (requires Node.js 18+)
-# The Go rewrite is currently published under the `beta` tag:
-npm install -g cvox@beta
+npm install -g cvox
 
 # Or install the binary directly (macOS/Linux/Windows)
 curl -fsSL https://raw.githubusercontent.com/lmk123/cvox/main/install.sh | sh
