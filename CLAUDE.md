@@ -20,6 +20,17 @@ go test ./...               # 运行所有测试
 bash test.sh                # 冒烟测试 notify 命令
 ```
 
+## 发布
+
+推送 `v*` tag 触发 `.github/workflows/release.yml`：
+
+1. **goreleaser**（`.goreleaser.yaml`，`version: 2`）交叉编译 6 个平台二进制（linux/darwin/windows × amd64/arm64，`CGO_ENABLED=0` 纯静态）、打包上传到 GitHub Releases，并生成一个 **Homebrew Cask 推送到自有 tap `lmk123/homebrew-tap`**（安装：`brew install lmk123/tap/cvox`）。
+2. **npm** job 在 goreleaser 之后发 npm 包（`postinstall` 从 Releases 下载对应二进制）。
+
+- cask 用 post-install hook（`xattr -dr com.apple.quarantine`）删除隔离标记 —— cvox 未做 Apple 公证，否则新版 macOS 会报"已损坏"。Go 编译产物自带 ad-hoc 签名，满足 Apple Silicon 强制签名，删掉 quarantine 即可运行。
+- 推 cask 到 `homebrew-tap`（另一个仓库）需要仓库 secret **`HOMEBREW_TAP_GITHUB_TOKEN`**（对 `lmk123/homebrew-tap` 有 `Contents: write` 的 PAT）—— 默认 `GITHUB_TOKEN` 只能访问 cvox 仓库本身。secret 名必须与 `.goreleaser.yaml` 里的 `.Env.HOMEBREW_TAP_GITHUB_TOKEN` 一字不差。
+- 本地干跑（不发布）：`goreleaser check` 校验语法，`goreleaser release --snapshot --clean --skip=publish` 生成 cask 到 `dist/` 供检查。
+
 ## Hook 探针（调试工具）
 
 排查「某个权限框/事件到底触发了哪个 hook」时用，避免靠耳朵猜（agent 沙箱挡音频、改 hook 没重启等假象）。

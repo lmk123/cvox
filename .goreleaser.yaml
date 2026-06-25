@@ -1,6 +1,7 @@
 # goreleaser config for cvox multi-platform releases.
 # Run `goreleaser release --clean` locally or push a v* tag to trigger CI.
 
+version: 2
 project_name: cvox
 before:
   hooks:
@@ -21,10 +22,10 @@ builds:
     main: .
     binary: cvox
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE
@@ -35,3 +36,25 @@ release:
   github:
     owner: lmk123
     name: cvox
+homebrew_casks:
+  - name: cvox
+    repository:
+      owner: lmk123
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    homepage: "https://github.com/lmk123/cvox"
+    description: "Voice and desktop notifications for Claude Code and Claude Desktop"
+    # cvox is not Apple-notarized, so a cask install leaves the quarantine bit on
+    # the binary and recent macOS refuses to run it ("damaged / can't be opened").
+    # Strip it on install; the Go toolchain already ad-hoc signs the binary, which
+    # satisfies Apple Silicon's mandatory-signature requirement.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/cvox"]
+          end

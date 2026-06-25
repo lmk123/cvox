@@ -27,10 +27,14 @@ jobs:
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
-          version: latest
+          version: "~> v2"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PAT with write access to lmk123/homebrew-tap, so GoReleaser can push
+          # the generated Homebrew cask there (the default GITHUB_TOKEN can't
+          # reach another repo). Name must match the .Env ref in .goreleaser.yaml.
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 
   npm:
     # Publish the npm wrapper package after the release assets exist, so the

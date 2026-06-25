@@ -19,7 +19,10 @@ Voice notifications for [Claude Code](https://claude.com/product/claude-code) **
 ## Quick Start
 
 ```bash
-# Install via npm (requires Node.js 18+)
+# Install via Homebrew (macOS)
+brew install lmk123/tap/cvox
+
+# Or via npm (requires Node.js 18+)
 npm install -g cvox
 
 # Or install the binary directly (macOS/Linux/Windows)
