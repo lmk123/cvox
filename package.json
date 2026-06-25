@@ -1,6 +1,6 @@
 {
   "name": "cvox",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Claude Voice Notifications - voice alerts and desktop notifications for Claude Code.",
   "bin": {
     "cvox": "bin/cvox.cjs"
