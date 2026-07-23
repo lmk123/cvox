@@ -17,3 +17,6 @@
 # cvox hook probe log (forensic, local-only)
 /probe.log
 /probe-full.log
+
+# cvox debug event log (written when config debug=true, local-only)
+/.cvox.log

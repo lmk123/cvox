@@ -83,7 +83,8 @@ Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to
   },
   "desktop": {
     "enabled": false
-  }
+  },
+  "debug": false
 }
 ```
 
@@ -96,8 +97,11 @@ Create a `.cvox.json` in your project root or home directory (`~/.cvox.json`) to
 | `hooks.stop.message` | string | `"Claude Code task completed, from {project}"` | Message for task completion |
 | `tts.enabled` | boolean | `false` | Enable/disable TTS voice globally |
 | `desktop.enabled` | boolean | `false` | Enable/disable desktop notifications globally |
+| `debug` | boolean | `false` | When true, `cvox notify` appends each received hook event (event name, tool name, cwd) to `<project>/.cvox.log` for troubleshooting |
 
 Config files are merged with deep merge — you only need to specify the fields you want to override. Both `tts.enabled` and `desktop.enabled` default to `false`, so a project only speaks once a `.cvox.json` turns one of them on (which `cvox init` does for you when you choose a concrete option). When running `cvox init`, both the language and notification method prompts offer an "Inherit" choice that omits the corresponding field from the `.cvox.json`, letting it fall back to the parent layer (defaults → `~/.cvox.json`).
+
+`debug` is hand-authored only (`cvox init` never writes it). Turn it on when you need to see which hook fires for a given prompt: every received event is appended to `<project>/.cvox.log`. Add `.cvox.log` to your `.gitignore` so the log isn't accidentally committed.
 
 ## How It Works
 

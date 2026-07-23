@@ -31,6 +31,25 @@ func TestLoadDefaults(t *testing.T) {
 	if !cfg.Hooks.Stop.Enabled {
 		t.Error("Load: hooks.stop.enabled should be true by default")
 	}
+	if cfg.Debug {
+		t.Error("Load: debug should be false by default")
+	}
+}
+
+func TestLoadDebugFromProjectConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	// Mock home dir to avoid reading the user's actual ~/.cvox.json.
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
+
+	// debug is not written by WriteProject; it's hand-authored in .cvox.json.
+	if err := os.WriteFile(filepath.Join(tmpDir, ".cvox.json"), []byte(`{"debug":true}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := Load(tmpDir)
+	if !cfg.Debug {
+		t.Error("Load: debug should be true from project config")
+	}
 }
 
 func TestLoadWithProjectConfig(t *testing.T) {

@@ -33,6 +33,9 @@ type Config struct {
 	}
 	TTS     Toggle
 	Desktop Toggle
+	// Debug, when true, makes `cvox notify` append every received hook event to
+	// <cwd>/.cvox.log for troubleshooting which events fire.
+	Debug bool
 }
 
 // LocaleMessages maps a locale code to its notification/stop message templates.
@@ -58,6 +61,7 @@ func defaults() Config {
 	c.Hooks.Stop = HookEvent{Enabled: true, Message: Locales["en"].Stop}
 	c.TTS = Toggle{Enabled: false}
 	c.Desktop = Toggle{Enabled: false}
+	c.Debug = false
 	return c
 }
 
@@ -73,6 +77,7 @@ type partial struct {
 	} `json:"hooks"`
 	TTS     *partialToggle `json:"tts"`
 	Desktop *partialToggle `json:"desktop"`
+	Debug   *bool          `json:"debug"`
 }
 
 // Partial mirrors the on-disk .cvox.json schema with pointer fields.
@@ -149,6 +154,9 @@ func apply(c *Config, p *partial) {
 	}
 	if p.Desktop != nil && p.Desktop.Enabled != nil {
 		c.Desktop.Enabled = *p.Desktop.Enabled
+	}
+	if p.Debug != nil {
+		c.Debug = *p.Debug
 	}
 }
 
