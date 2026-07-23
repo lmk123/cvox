@@ -60,10 +60,10 @@ CLI 是单个 Go 二进制，有三个核心命令：
 - `main.go` — CLI 入口：子命令分发和 --version
 - `internal/cli/` — 命令实现
   - `init.go` — Hook 安装逻辑：hooks 始终写入全局 `~/.claude/settings.json`，深度合并以避免覆盖已有配置；`--global` 仅决定 `.cvox.json` 位置（家目录 vs 项目根目录）；懒清理旧的项目级 `settings.local.json` hooks；交互式选择语言和通知方式（语音/桌面/两者）。两个提示都额外提供「Inherit」选项（列在末尾、非默认）：选中即不写入对应字段，回退到父层。提示里 `Inherit (X)` 的 X 由 `config.LoadForInherit(global)` 计算 —— 只看父层（非 global=默认值+`~/.cvox.json`，global=仅默认值），不含正要被覆盖的目标文件
-  - `notify.go` — 事件处理、TTS 调用、桌面通知调用；包含内置静音名单 `MUTED_NOTIFICATION_TOOLS`（见关键设计）。opt-in 通过配置默认值实现，`notify` 本身不包含"文件存在"检查
+  - `notify.go` — 事件处理、TTS 调用、桌面通知调用；包含内置静音名单 `MUTED_NOTIFICATION_TOOLS`（见关键设计）。opt-in 通过配置默认值实现，`notify` 本身不包含"文件存在"检查。当 `cfg.Debug` 为 true 时，`writeDebugLog` 把事件（`hook_event_name`/`tool_name`/`cwd` 三个已解析字段）追加写入 `<cwd>/.cvox.log`（best-effort，失败只写 stderr）
   - `remove.go` — 移除逻辑：默认删除项目 `.cvox.json` + 清理旧的项目 cvox hooks，不触碰全局 hooks；`--global` 删除全局 hooks + `~/.cvox.json`
 - `internal/hooks/` — Hook 定义（`hooks.go`）：权限提示只挂载 PermissionRequest（matcher `""`）— CLI 和 Desktop 权限对话框都触发 PermissionRequest；CLI 额外触发 Notification（matcher `permission_prompt`）而 Desktop 不触发，所以已弃用以避免 CLI 双响；stop 对应任务完成
-- `internal/config/` — 三层配置合并（`config.go`）：默认值 → `~/.cvox.json` → 项目 `.cvox.json`；`tts.enabled`/`desktop.enabled` 默认为 `false`（见关键设计"通过默认值 opt-in"）。`Load` 合并全部三层；`LoadForInherit(global)` 只合并父层（非 global=默认值+`~/.cvox.json`，global=仅默认值），供 init 的「Inherit (X)」提示展示继承值用。`WriteProject` 的 `ProjectInput` 字段是指针类型，nil 表示「继承」—— 会删除已有 key 并清理空对象
+- `internal/config/` — 三层配置合并（`config.go`）：默认值 → `~/.cvox.json` → 项目 `.cvox.json`；`tts.enabled`/`desktop.enabled` 默认为 `false`（见关键设计"通过默认值 opt-in"）；顶层 `debug`（扁平布尔，非 `debug.enabled`）默认 `false`，仅 notify 路径读取，`init`/`WriteProject` 不写入（手动编辑）。`Load` 合并全部三层；`LoadForInherit(global)` 只合并父层（非 global=默认值+`~/.cvox.json`，global=仅默认值），供 init 的「Inherit (X)」提示展示继承值用。`WriteProject` 的 `ProjectInput` 字段是指针类型，nil 表示「继承」—— 会删除已有 key 并清理空对象
 - `internal/settings/` — Claude settings.json 读写（`settings.go`）：`Read` 区分"文件缺失"（ENOENT → 返回 `{}`，正常首次运行）vs"文件存在但不可读/JSON 损坏/根不是对象"（抛出 `SettingsParseError`，从不返回 `{}`）— 这防止"空对象覆盖用户配置"；`Write` 是原子的（写 `.tmp` 然后 `rename`）以防止半损坏文件（见关键设计"永不覆盖损坏的 settings.json"）
 - `internal/notify/` — 平台特定的通知实现
   - `tts.go` — TTS 引擎检测和命令构建（`say`/`espeak`/SAPI PowerShell）

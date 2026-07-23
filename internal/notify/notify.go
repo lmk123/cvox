@@ -7,8 +7,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/lmk123/cvox/internal/config"
 )
@@ -73,6 +75,18 @@ func Run(r io.Reader, cwdFallback string, stdinIsTTY bool) error {
 		return nil
 	}
 
+	cwd := input.Cwd
+	if cwd == "" {
+		cwd = cwdFallback
+	}
+	cfg := config.Load(cwd)
+
+	// In debug mode, log every received event (including ones cvox ignores or
+	// mutes below) so users can see which hook fired for a given prompt.
+	if cfg.Debug {
+		writeDebugLog(cwd, input)
+	}
+
 	key := eventKey(input.HookEventName)
 	if key == "" {
 		return nil
@@ -84,12 +98,6 @@ func Run(r io.Reader, cwdFallback string, stdinIsTTY bool) error {
 	if key == "notification" && input.ToolName != "" && IsToolMuted(input.ToolName) {
 		return nil
 	}
-
-	cwd := input.Cwd
-	if cwd == "" {
-		cwd = cwdFallback
-	}
-	cfg := config.Load(cwd)
 
 	var event config.HookEvent
 	if key == "notification" {
@@ -105,6 +113,26 @@ func Run(r io.Reader, cwdFallback string, stdinIsTTY bool) error {
 
 	dispatch(message, cfg)
 	return nil
+}
+
+// writeDebugLog appends a single line describing the received event to
+// <cwd>/.cvox.log. It records only the fields cvox parses (hook_event_name,
+// tool_name, cwd), mirroring probe.cjs's compact mode. Best-effort: any error
+// is written to stderr and never aborts notification handling.
+func writeDebugLog(cwd string, input hookInput) {
+	path := filepath.Join(cwd, ".cvox.log")
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		os.Stderr.WriteString("cvox: " + err.Error() + "\n")
+		return
+	}
+	defer f.Close()
+
+	line := "[" + time.Now().Format("15:04:05") + "] " +
+		input.HookEventName + " tool=" + input.ToolName + " cwd=" + input.Cwd + "\n"
+	if _, err := f.WriteString(line); err != nil {
+		os.Stderr.WriteString("cvox: " + err.Error() + "\n")
+	}
 }
 
 // dispatch fires the voice and desktop notifications concurrently (so the
