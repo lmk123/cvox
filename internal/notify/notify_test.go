@@ -13,7 +13,7 @@ func TestWriteDebugLog(t *testing.T) {
 
 	writeDebugLog(tmpDir, hookInput{
 		HookEventName: "PermissionRequest",
-		Cwd:           tmpDir,
+		Cwd:           "/original/path", // input.Cwd is ignored; resolved cwd param is logged
 		ToolName:      "Bash",
 	})
 
@@ -22,14 +22,18 @@ func TestWriteDebugLog(t *testing.T) {
 		t.Fatalf("writeDebugLog: log file not created: %v", err)
 	}
 	got := string(content)
+	// Verify the resolved cwd (tmpDir) is logged, not input.Cwd.
 	for _, want := range []string{"PermissionRequest", "tool=Bash", "cwd=" + tmpDir} {
 		if !strings.Contains(got, want) {
 			t.Errorf("writeDebugLog: log %q missing %q", got, want)
 		}
 	}
+	if strings.Contains(got, "/original/path") {
+		t.Errorf("writeDebugLog: log should use resolved cwd, not input.Cwd: %q", got)
+	}
 
 	// A second event should append, not overwrite.
-	writeDebugLog(tmpDir, hookInput{HookEventName: "Stop", Cwd: tmpDir})
+	writeDebugLog(tmpDir, hookInput{HookEventName: "Stop", Cwd: ""})
 	content, err = os.ReadFile(logPath)
 	if err != nil {
 		t.Fatal(err)

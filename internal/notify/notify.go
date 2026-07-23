@@ -129,7 +129,7 @@ func writeDebugLog(cwd string, input hookInput) {
 	defer f.Close()
 
 	line := "[" + time.Now().Format("15:04:05") + "] " +
-		input.HookEventName + " tool=" + input.ToolName + " cwd=" + input.Cwd + "\n"
+		input.HookEventName + " tool=" + input.ToolName + " cwd=" + cwd + "\n"
 	if _, err := f.WriteString(line); err != nil {
 		os.Stderr.WriteString("cvox: " + err.Error() + "\n")
 	}
