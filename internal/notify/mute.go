@@ -19,6 +19,8 @@ import (
 var mutedNotificationTools = []string{
 	"mcp__Claude_Preview__*",
 	"!mcp__Claude_Preview__preview_start",
+	"mcp__Claude_Browser__*",
+	"!mcp__Claude_Browser__preview_start",
 }
 
 // globToRegexp escapes every regex metacharacter except `*`, then turns the
