@@ -79,7 +79,7 @@ CLI 是单个 Go 二进制，有三个核心命令：
 - **跨平台 TTS**：macOS `say` / Linux `espeak` / Windows SAPI via PowerShell
 - **跨平台桌面通知**：macOS `osascript` / Linux `notify-send` / Windows PowerShell NotifyIcon
 - **配置消息支持 `{project}` 占位符**
-- **内置静音名单**（`mute.go`）：`PermissionRequest` hook 在工具"进入权限流程"时触发，早于实际对话框出现。Claude Desktop 的 Preview 工具会被自动批准、从不显示对话框，但 hook 仍然触发，导致多余语音。hook 输入没有字段能区分"真实确认 vs 自动批准"（只有 `tool_name`/`tool_input`/`permission_suggestions`，且 `permission_suggestions` 存在与否与对话框出现不相关，甚至会反转），所以通过 `tool_name` 匹配名单静音。语法：单数组，仅 `*` 通配符，`!` 前缀否定，后项覆盖前项（镜像 Claude Code 权限规则）。当前覆盖 `mcp__Claude_Preview__*` 并否定 `!mcp__Claude_Preview__preview_start`（该工具在 Claude Desktop 确实显示确认对话框，被通配符错误静音）。如果其他 Preview 工具也显示对话框，添加 `"!mcp__Claude_Preview__preview_xxx"` 允许它们。仅影响通知（权限）路径，不影响 stop。对用户透明，不暴露为配置选项。
+- **内置静音名单**（`mute.go`）：`PermissionRequest` hook 在工具"进入权限流程"时触发，早于实际对话框出现。Claude Desktop 的 Preview 工具会被自动批准、从不显示对话框，但 hook 仍然触发，导致多余语音。hook 输入没有字段能区分"真实确认 vs 自动批准"（只有 `tool_name`/`tool_input`/`permission_suggestions`，且 `permission_suggestions` 存在与否与对话框出现不相关，甚至会反转），所以通过 `tool_name` 匹配名单静音。语法：单数组，仅 `*` 通配符，`!` 前缀否定，后项覆盖前项（镜像 Claude Code 权限规则）。当前覆盖 `mcp__Claude_Preview__*` 和 `mcp__Claude_Browser__*`（同一套 Preview 工具在新旧 MCP server 名下的两个命名空间），并各自否定 `preview_start`（该工具在 Claude Desktop 确实显示确认对话框，被通配符错误静音）。如果其他 Preview 工具也显示对话框，添加 `"!mcp__Claude_Browser__preview_xxx"` 允许它们。仅影响通知（权限）路径，不影响 stop。对用户透明，不暴露为配置选项。
 - **Hook 安装使用 marker 子字符串实现幂等性**
 - **Go 特定**：settings 读写使用 `github.com/tidwall/gjson`/`sjson`/`pretty` 来逐字节保留用户的 settings.json 键顺序和未知字段，只编辑 `hooks` 键。这避免了标准库 `map[string]any` 在 JSON 序列化时按字母顺序重排键的行为，这会产生嘈杂的 diff。
 
